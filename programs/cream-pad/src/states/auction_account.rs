@@ -2,6 +2,7 @@ use crate::states::{AuctionStatus, DecayModelType, ProgramStatus};
 use anchor_lang::prelude::*;
 
 pub const AUCTION_ACCOUNT_PREFIX: &str = "AAP";
+pub const AUCTION_VAULT_PREFIX: &str = "AAP";
 
 #[account]
 pub struct AuctionAccount {
@@ -28,6 +29,7 @@ pub struct AuctionAccount {
 
     pub alpha: u64,
 
+    // TODO: test this with u16 same as tmax
     pub time_shift_max: u64,
 
     pub current_price: u64,
@@ -43,6 +45,8 @@ pub struct AuctionAccount {
     pub total_supply_sold: u64,
 
     pub total_user_buy_count: u64,
+
+    pub total_user_count: u64,
 
     pub total_unsold_supply_locked: u64,
 
@@ -103,6 +107,8 @@ impl AuctionAccount {
             + 8 // total_supply_sold
 
              + 8 // total_user_buy_count
+
+             + 8 // total_user_count
 
              + 8 // total_unsold_supply_locked
 

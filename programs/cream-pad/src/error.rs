@@ -83,4 +83,7 @@ pub enum CreamPadError {
 
     #[msg("Supply token account authority")]
     InvalidTokenAccountAuthority,
+
+    #[msg("Invalid buy index")]
+    InvalidBuyIndex,
 }

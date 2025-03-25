@@ -1,7 +1,10 @@
 use anchor_lang::prelude::*;
 
 use crate::states::{CreamPadAccount, ProgramStatus, CREAM_PAD_ACCOUNT_PREFIX};
-use crate::utils::{check_distribution_and_lock_base_point, check_fee_base_point, check_signing_authority, check_value_is_zero};
+use crate::utils::{
+    check_distribution_and_lock_base_point, check_fee_base_point, check_signing_authority,
+    check_value_is_zero,
+};
 
 #[repr(C)]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -33,7 +36,6 @@ pub struct UpdateConfigInputParams {
 #[derive(Accounts)]
 #[instruction(params: UpdateConfigInputParams)]
 pub struct UpdateConfigInputAccounts<'info> {
-
     pub signing_authority: Signer<'info>,
 
     #[account(
@@ -55,14 +57,21 @@ pub fn handle_update_config(
     let cream_pad_config: &Box<Account<CreamPadAccount>> = &ctx.accounts.cream_pad_config;
 
     // Checks
-    check_signing_authority(cream_pad_config.signing_authority, ctx.accounts.signing_authority.key())?;
+    check_signing_authority(
+        cream_pad_config.signing_authority,
+        ctx.accounts.signing_authority.key(),
+    )?;
 
     check_value_is_zero(params.fee_base_point as usize)?;
     check_value_is_zero(params.round_limit as usize)?;
     check_value_is_zero(params.lock_base_point as usize)?;
     check_value_is_zero(params.lock_duration as usize)?;
     check_fee_base_point(params.fee_base_point)?;
-    check_distribution_and_lock_base_point(params.distribution_base_point.saturating_add(params.lock_base_point))?;
+    check_distribution_and_lock_base_point(
+        params
+            .distribution_base_point
+            .saturating_add(params.lock_base_point),
+    )?;
 
     // Set Values
     let cream_pad_config: &mut Box<Account<CreamPadAccount>> = &mut ctx.accounts.cream_pad_config;

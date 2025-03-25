@@ -230,6 +230,14 @@ pub fn check_token_account_authority(value_a: Pubkey, value_b: Pubkey) -> Result
     Ok(())
 }
 
+pub fn check_buy_index(value_a: u64, value_b: u64) -> Result<()> {
+    if value_a != value_b {
+        return Err(CreamPadError::InvalidBuyIndex.into());
+    }
+
+    Ok(())
+}
+
 ///////////// MATH ///////////////
 
 pub fn calculate_boost(
@@ -240,37 +248,41 @@ pub fn calculate_boost(
     time_shift_max: u64,
 ) -> u64 {
     if actual_sales >= expected_sales {
-        return (alpha * omega * (actual_sales / expected_sales)).min(time_shift_max);
+        let ratio = actual_sales as f64 / expected_sales as f64; // ✅ Use f64 for precision
+        return (alpha as f64 * omega as f64 * ratio)
+            .min(time_shift_max as f64) as u64;
     }
     0 // No boost if sales are below target
 }
 
 pub fn calculate_price(
-    p0: u64,
-    ptmax: u64,
-    t_max: u64,
-    current_round: usize,
-    boost_history: &[u64],
+    p0: u64,               // Initial price
+    ptmax: u64,            // Minimum price
+    t_max: u64,            // Total rounds (time)
+    current_round: usize,  // Current round index
+    boost_history: &[u64], // Boost applied per round
     decay_model: DecayModelType,
-    time_shift_max: u64,
+    time_shift_max: u64,   // Maximum shift in time-based decay
 ) -> u64 {
-    let mut total_boost = 0;
+    let mut total_boost: f64 = 0.0; // ✅ Use f64 for precision
+
     for &boost in boost_history.iter().take(current_round) {
-        total_boost += 1 - boost.min(time_shift_max);
+        total_boost += (1.0 - boost.min(time_shift_max) as f64); // ✅ Fix boost impact
     }
 
     if decay_model == DecayModelType::Linear {
-        // Linear decay
-        let k0 = (p0 - ptmax) / t_max;
-        let new_price = p0.saturating_sub(k0 * total_boost).max(ptmax);
-
-        return if new_price < ptmax { ptmax } else { new_price };
+        let k0 = (p0 as f64 - ptmax as f64) / (t_max - 1) as f64;
+        let new_price = (p0 as f64 - k0 * total_boost).max(ptmax as f64);
+        return new_price as u64;
     } else {
-        // Exponential decay
-        let lambda0 = ((p0 as f64).ln() - (ptmax as f64).ln()) / (t_max as f64);
-        let new_price = (p0 as f64 * (-lambda0 * total_boost as f64).exp()) as u64;
-        return if new_price < ptmax { ptmax } else { new_price };
-    };
+        if p0 <= ptmax {
+            return ptmax;
+        }
+
+        let lambda0 = ((p0 as f64).ln() - (ptmax as f64).ln()) / (t_max - 1) as f64;
+        let new_price = (p0 as f64 * (-lambda0 * total_boost).exp()).max(ptmax as f64);
+        return new_price as u64;
+    }
 }
 
 // Utility to adjust amount based on mint decimals
@@ -299,41 +311,3 @@ pub fn calculate_total_price(
     let total_price: u128 = (amount_in_point * price_in_point) / 10u128.pow(output_decimals as u32);
     total_price as u64
 }
-
-// pub fn calculate_boost(
-//     actual_sales: f64,
-//     expected_sales: f64,
-//     omega: f64,
-//     alpha: f64,
-//     time_shift_max: f64,
-// ) -> f64 {
-//     if actual_sales >= expected_sales {
-//         return (alpha * omega * (actual_sales / expected_sales)).min(time_shift_max);
-//     }
-//     0.0 // No boost if sales are below target
-// }
-//
-// pub fn calculate_price(
-//     p0: f64,
-//     ptmax: f64,
-//     t_max: f64,
-//     current_round: usize,
-//     boost_history: &[f64],
-//     decay_model: DecayModelType,
-//     time_shift_max: f64,
-// ) -> f64 {
-//     let mut total_boost = 0.0;
-//     for &boost in boost_history.iter().take(current_round) {
-//         total_boost += 1.0 - boost.min(time_shift_max);
-//     }
-//
-//     return if decay_model == DecayModelType::Linear {
-//         // Linear decay
-//         let k0 = (p0 - ptmax) / t_max;
-//         (p0 - k0 * total_boost).max(ptmax)
-//     } else {
-//         // Exponential decay
-//         let lambda0 = (p0.ln() - ptmax.ln()) / t_max;
-//         (p0 * (-lambda0 * total_boost).exp()).max(ptmax)
-//     }
-// }

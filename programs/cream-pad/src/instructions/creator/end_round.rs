@@ -128,7 +128,7 @@ pub fn handle_end_round<'info>(
 
     check_is_auction_round_still_have_time(auction_round_config.round_end_at, timestamp)?;
 
-    let boot: u64 = calculate_boost(
+    let boost: u64 = calculate_boost(
         auction_round_config.total_supply_sold,
         auction_config
             .total_supply
@@ -147,14 +147,14 @@ pub fn handle_end_round<'info>(
         auction_config.status = AuctionStatus::Ended;
     };
 
-    auction_config.boost_history.push(boot);
+    auction_config.boost_history.push(boost);
 
     let auction_round_config: &mut Box<Account<AuctionRoundAccount>> =
         &mut ctx.accounts.auction_round_config;
     auction_round_config.last_block_timestamp = timestamp;
     auction_round_config.status = AuctionRoundStatus::Ended;
     auction_round_config.round_ended_at = timestamp;
-    auction_round_config.boost = boot;
+    auction_round_config.boost = boost;
 
     Ok(())
 }

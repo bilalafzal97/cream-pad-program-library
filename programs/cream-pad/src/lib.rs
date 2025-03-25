@@ -14,7 +14,7 @@ mod states;
 
 mod utils;
 
-declare_id!("FrpyyxeooQ4ZvXNbuT1pfgh3imUEguGacM5zsMkZHt5s");
+declare_id!("5sqESwK18j9eH8wk58bZocg2eytvQgJvtJgBq3f1MXEs");
 
 #[program]
 pub mod cream_pad {
@@ -60,5 +60,12 @@ pub mod cream_pad {
         params: StartNextRoundInputParams,
     ) -> Result<()> {
         handle_start_next_round(ctx, &params)
+    }
+
+    pub fn buy<'info>(
+        ctx: Context<'_, '_, 'info, 'info, BuyInputAccounts<'info>>,
+        params: BuyParams,
+    ) -> Result<()> {
+        handle_buy(ctx, &params)
     }
 }

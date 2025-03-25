@@ -1,6 +1,6 @@
 use crate::instructions::manager::{InitializeInputAccounts, InitializeInputParams};
 use crate::states::{AuctionAccount, AuctionRoundAccount, AuctionRoundStatus, AuctionStatus, CreamPadAccount, DecayModelType, ProgramStatus, AUCTION_ACCOUNT_PREFIX, AUCTION_ROUND_ACCOUNT_PREFIX, CREAM_PAD_ACCOUNT_PREFIX};
-use crate::utils::{check_back_authority, check_fee_base_point, check_is_program_working, check_ptmax, check_round_limit, check_signing_authority, check_value_is_zero};
+use crate::utils::{adjust_amount, check_back_authority, check_fee_base_point, check_is_program_working, check_ptmax, check_round_limit, check_signing_authority, check_value_is_zero};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
@@ -142,6 +142,10 @@ pub fn handle_initialize_pad(
 
     check_ptmax(params.p0, params.ptmax)?;
 
+    // Convert amount for transfer
+    let adjusted_amount = adjust_amount(params.supply, 9, ctx.accounts.token_mint_account.decimals);
+
+
     // Token Transfer
     let cpi_accounts = TransferChecked {
         from: ctx.accounts.creator_token_account.to_account_info(),
@@ -153,7 +157,7 @@ pub fn handle_initialize_pad(
     let cpi_context = CpiContext::new(cpi_program, cpi_accounts);
     transfer_checked(
         cpi_context,
-        params.supply,
+        adjusted_amount,
         ctx.accounts.token_mint_account.decimals,
     )?;
 

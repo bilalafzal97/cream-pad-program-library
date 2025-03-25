@@ -45,6 +45,6 @@ impl CreamPadAccount {
             + 2 // round_limit
             + 2 // distribution_base_point
             + 2 // lock_base_point
-            + 2 // lock_duration
+            + 8 // lock_duration
     }
 }

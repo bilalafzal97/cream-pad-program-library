@@ -16,6 +16,8 @@ pub struct AuctionRoundAccount {
 
     pub total_user_buy_count: u64,
 
+    pub total_user_count: u64,
+
     pub boost: u64,
 
     pub price: u64,
@@ -43,6 +45,8 @@ impl AuctionRoundAccount {
             + 8 // total_supply_sold
 
             + 8 // total_user_buy_count
+
+            + 8 // total_user_count
 
             + 8 // boost
 
