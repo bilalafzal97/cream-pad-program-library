@@ -129,8 +129,8 @@ pub fn handle_lock_and_distribute<'info>(
 
     let adjusted_unsold_supply: u64 = adjust_amount(auction_config.total_supply.checked_sub(auction_config.total_supply_sold).unwrap(), 9, ctx.accounts.token_mint_account.decimals);
 
-    let unsold_supply_for_lock: u64 = adjusted_unsold_supply.checked_sub(cream_pad_config.lock_base_point as u64).unwrap().checked_div(BASE_POINT as u64).unwrap();
-    let unsold_supply_for_distribution: u64 = adjusted_unsold_supply.checked_sub(cream_pad_config.distribution_base_point as u64).unwrap().checked_div(BASE_POINT as u64).unwrap();
+    let unsold_supply_for_lock: u64 = adjusted_unsold_supply.checked_mul(cream_pad_config.lock_base_point as u64).unwrap().checked_div(BASE_POINT as u64).unwrap();
+    let unsold_supply_for_distribution: u64 = adjusted_unsold_supply.checked_mul(cream_pad_config.distribution_base_point as u64).unwrap().checked_div(BASE_POINT as u64).unwrap();
 
     // transfer token to user
     let auction_config_bump_bytes = params.auction_config_bump.to_le_bytes();
@@ -151,7 +151,7 @@ pub fn handle_lock_and_distribute<'info>(
     };
 
     let transfer_token_to_vault_cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.token_mint_account.to_account_info().clone(),
+        ctx.accounts.token_program.to_account_info().clone(),
         transfer_token_to_vault_cpi_accounts,
         signer_seeds,
     );

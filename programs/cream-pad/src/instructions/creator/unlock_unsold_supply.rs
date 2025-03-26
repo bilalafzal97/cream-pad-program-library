@@ -151,7 +151,7 @@ pub fn handle_unlock_unsold_supply<'info>(
     };
 
     let transfer_vault_to_creator_cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.token_mint_account.to_account_info().clone(),
+        ctx.accounts.token_program.to_account_info().clone(),
         transfer_vault_to_creator_cpi_accounts,
         signer_seeds,
     );

@@ -247,7 +247,7 @@ pub fn check_is_auction_is_locked(status: AuctionStatus) -> Result<()> {
 }
 
 pub fn check_can_unlock(unlock_at: i64, current_at: i64) -> Result<()> {
-    if unlock_at < current_at {
+    if unlock_at > current_at {
         return Err(CreamPadError::AuctionNotAtLock.into());
     }
 
