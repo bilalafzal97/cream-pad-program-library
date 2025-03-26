@@ -1,18 +1,14 @@
-use crate::instructions::manager::{InitializeInputAccounts, InitializeInputParams};
-use crate::states::{AuctionAccount, AuctionRoundAccount, AuctionRoundStatus, AuctionStatus, CreamPadAccount, DecayModelType, ProgramStatus, UserAuctionAccount, UserAuctionBuyReceiptAccount, UserAuctionRoundAccount, UserAuctionStatus, AUCTION_ACCOUNT_PREFIX, AUCTION_ROUND_ACCOUNT_PREFIX, CREAM_PAD_ACCOUNT_PREFIX, USER_AUCTION_ACCOUNT_PREFIX, USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX, USER_AUCTION_ROUND_ACCOUNT_PREFIX};
-use crate::utils::{adjust_amount, calculate_boost, calculate_total_price, check_back_authority, check_buy_index, check_current_round, check_fee_base_point, check_is_auction_ended_or_sold_out, check_is_auction_round_ended, check_is_auction_round_still_have_time, check_is_auction_round_time_run_out, check_is_program_working, check_payment_fee_receiver, check_payment_mint_account, check_payment_receiver, check_remaining_supply, check_round_ender, check_round_limit, check_signer_exist, check_signing_authority, check_token_account_authority, check_value_is_zero, try_get_remaining_account_info, BASE_POINT};
+use crate::states::{AuctionAccount, AuctionRoundAccount, AuctionRoundStatus, AuctionStatus, CreamPadAccount, UserAuctionAccount, UserAuctionBuyReceiptAccount, UserAuctionRoundAccount, UserAuctionStatus, AUCTION_ACCOUNT_PREFIX, AUCTION_ROUND_ACCOUNT_PREFIX, USER_AUCTION_ACCOUNT_PREFIX, USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX, USER_AUCTION_ROUND_ACCOUNT_PREFIX};
+use crate::utils::{adjust_amount, calculate_boost, calculate_total_price, check_back_authority, check_buy_index, check_current_round, check_is_auction_ended_or_sold_out, check_is_auction_round_ended, check_is_auction_round_time_run_out, check_is_program_working, check_payment_fee_receiver, check_payment_mint_account, check_payment_receiver, check_remaining_supply, check_signer_exist, check_token_account_authority, try_get_remaining_account_info, BASE_POINT};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
-use anchor_lang::solana_program::native_token::LAMPORTS_PER_SOL;
 use anchor_spl::associated_token::{
     create as associated_token_create, Create as AssociatedTokenCreate,
 };
 use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
+    transfer_checked, Mint, TokenAccount, TransferChecked,
 };
-use std::ops::{Div, Mul};
 
-use crate::instructions::creator::{UpdatePadInputAccounts, UpdatePadInputParams};
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
 };

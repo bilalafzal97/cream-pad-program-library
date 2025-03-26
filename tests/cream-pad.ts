@@ -322,7 +322,7 @@ describe("cream-pad", () => {
             programStatus: ProgramStatus.Normal,
             distributionBasePoint: 5000,
             lockBasePoint: 5000,
-            lockDuration: new BN(10),
+            lockDuration: new BN(5),
             creamPadConfigBump: creamPadConfigBump
         })
             .accounts({
@@ -610,7 +610,7 @@ describe("cream-pad", () => {
         console.log("fee receiver balance: ", (await connection.getTokenAccountBalance(feeReceiverPaymentTokenAccount)));
     });
 
-    it("End Round", async () => {
+    it("End Round 1", async () => {
         await delay(5000);
 
         const roundIndex = "1";
@@ -686,7 +686,7 @@ describe("cream-pad", () => {
             padName: padName,
             previousRoundIndex: previousRoundIndex,
             nextRoundIndex: nextRoundIndex,
-            nextRoundDuration: new BN(10),
+            nextRoundDuration: new BN(5),
             auctionConfigBump: auctionConfigBump,
             previousAuctionRoundConfigBump: previousAuctionRoundConfigBump
         })
@@ -729,9 +729,10 @@ describe("cream-pad", () => {
         await assertAuctionRoundAccount(program, nextAuctionRoundConfigPda);
     });
 
-    it("Buy user a - 2", async () => {
+    it("End Round 2", async () => {
+        await delay(5000);
+
         const roundIndex = "2";
-        const userBuyIndex = "2";
 
         const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
@@ -742,50 +743,18 @@ describe("cream-pad", () => {
         const [auctionRoundConfigPda, auctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, AUCTION_ROUND_ACCOUNT_PREFIX, auctionConfigPda, roundIndex);
         console.log("auctionRoundConfigPda: ", auctionRoundConfigPda.toBase58());
 
-        const auctionConfigSellingTokenAccount = await getAssociatedTokenAddress(sellingTokenMintAccount, auctionConfigPda, true, sellingTokenProgramAccount);
-        console.log("auctionConfigSellingTokenAccount: ", auctionConfigSellingTokenAccount.toBase58());
 
-        const userSellingTokenAccount = await getAssociatedTokenAddress(sellingTokenMintAccount, userAKeypair.publicKey, true, sellingTokenProgramAccount);
-        console.log("userSellingTokenAccount: ", userSellingTokenAccount.toBase58());
-
-        const userPaymentTokenAccount = await getAssociatedTokenAddress(paymentTokenMintAccount, userAKeypair.publicKey, true, paymentTokenProgramAccount);
-        console.log("userPaymentTokenAccount: ", userPaymentTokenAccount.toBase58());
-
-        const paymentReceiverPaymentTokenAccount = await getAssociatedTokenAddress(paymentTokenMintAccount, paymentReceiverKeypair.publicKey, true, paymentTokenProgramAccount);
-        console.log("paymentReceiverPaymentTokenAccount: ", paymentReceiverPaymentTokenAccount.toBase58());
-
-        const feeReceiverPaymentTokenAccount = await getAssociatedTokenAddress(paymentTokenMintAccount, feeReceiverKeypair.publicKey, true, paymentTokenProgramAccount);
-        console.log("feeReceiverPaymentTokenAccount: ", feeReceiverPaymentTokenAccount.toBase58());
-
-        const [userAuctionConfigPda] = getUserAuctionAccountPdaAndBump(programId, USER_AUCTION_ACCOUNT_PREFIX, auctionConfigPda, userAKeypair.publicKey);
-        console.log("userAuctionConfigPda: ", userAuctionConfigPda.toBase58());
-
-        const [userAuctionRoundConfigPda] = getUserAuctionRoundAccountPdaAndBump(programId, USER_AUCTION_ROUND_ACCOUNT_PREFIX, auctionRoundConfigPda, userAuctionConfigPda);
-        console.log("userAuctionRoundConfigPda: ", userAuctionRoundConfigPda.toBase58());
-
-        const [userAuctionBuyReceiptConfigPda] = getUserAuctionBuyReceiptAccountPdaAndBump(programId, USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX, userAuctionConfigPda, userBuyIndex);
-        console.log("userAuctionBuyReceiptConfigPda: ", userAuctionBuyReceiptConfigPda.toBase58());
-
-        const tx = await program.methods.buy({
+        const tx = await program.methods.endRound({
             padName: padName,
-            currentRoundIndex: roundIndex,
-            buyIndex: userBuyIndex,
-            amount: new BN(tokensToLamports(1, 9)),
+            roundIndex: roundIndex,
             auctionConfigBump: auctionConfigBump,
             auctionRoundConfigBump: auctionRoundConfigBump
         })
             .accounts({
-                feeAndRentPayer: feeAndRentPayerKeypair.publicKey,
-                user: userAKeypair.publicKey,
+                ender: creatorKeypair.publicKey,
                 auctionConfig: auctionConfigPda,
                 auctionRoundConfig: auctionRoundConfigPda,
-                userAuctionConfig: userAuctionConfigPda,
-                userAuctionRoundConfig: userAuctionRoundConfigPda,
-                userAuctionBuyReceiptConfig: userAuctionBuyReceiptConfigPda,
                 tokenMintAccount: sellingTokenMintAccount,
-                paymentTokenMintAccount: paymentTokenMintAccount,
-                systemProgram: SystemProgram.programId,
-                rent: SYSVAR_RENT_PUBKEY,
                 instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY
             })
             .remainingAccounts([
@@ -795,75 +764,14 @@ describe("cream-pad", () => {
                     isWritable: false,
                     isSigner: false
                 },
-                // index 1: Back authority
+                // index 0: back authority
                 {
                     pubkey: backAuthorityKeypair.publicKey,
                     isWritable: false,
                     isSigner: true
-                },
-                // index 2: token program
-                {
-                    pubkey: sellingTokenProgramAccount,
-                    isWritable: false,
-                    isSigner: false
-                },
-                // index 3: payment token program
-                {
-                    pubkey: paymentTokenProgramAccount,
-                    isWritable: false,
-                    isSigner: false
-                },
-                // index 4: associated token program
-                {
-                    pubkey: ASSOCIATED_TOKEN_PROGRAM_ID,
-                    isWritable: false,
-                    isSigner: false
-                },
-                // index 5: user payment token program
-                {
-                    pubkey: userPaymentTokenAccount,
-                    isWritable: true,
-                    isSigner: false
-                },
-                // index 6: user token program
-                {
-                    pubkey: userSellingTokenAccount,
-                    isWritable: true,
-                    isSigner: false
-                },
-                // index 7: auction config token program
-                {
-                    pubkey: auctionConfigSellingTokenAccount,
-                    isWritable: true,
-                    isSigner: false
-                },
-                // index 8: payment receiver
-                {
-                    pubkey: paymentReceiverKeypair.publicKey,
-                    isWritable: false,
-                    isSigner: false
-                },
-                // index 9: payment receiver token account
-                {
-                    pubkey: paymentReceiverPaymentTokenAccount,
-                    isWritable: true,
-                    isSigner: false
-                },
-                // index 10: fee receiver
-                {
-                    pubkey: feeReceiverKeypair.publicKey,
-                    isWritable: false,
-                    isSigner: false
-                },
-                // index 11: fee receiver token account
-                {
-                    pubkey: feeReceiverPaymentTokenAccount,
-                    isWritable: true,
-                    isSigner: false
-                },
+                }
             ])
-
-            .signers([feeAndRentPayerKeypair, backAuthorityKeypair, userAKeypair])
+            .signers([backAuthorityKeypair, creatorKeypair])
             .rpc({
                 skipPreflight: true
             });
@@ -875,21 +783,62 @@ describe("cream-pad", () => {
         await assertAuctionAccount(program, auctionConfigPda, creatorKeypair.publicKey);
 
         await assertAuctionRoundAccount(program, auctionRoundConfigPda);
-
-        await assertUserAuctionAccount(program, userAuctionConfigPda);
-
-        await assertUserAuctionRoundAccount(program, userAuctionRoundConfigPda);
-
-        await assertUserAuctionBuyReceiptAccountt(program, userAuctionBuyReceiptConfigPda);
-
-
-        console.log("auction config balance: ", (await connection.getTokenAccountBalance(auctionConfigSellingTokenAccount)));
-        console.log("user sell balance: ", (await connection.getTokenAccountBalance(userSellingTokenAccount)));
-        console.log("user payment balance: ", (await connection.getTokenAccountBalance(userPaymentTokenAccount)));
-        console.log("payment receiver balance: ", (await connection.getTokenAccountBalance(paymentReceiverPaymentTokenAccount)));
-        console.log("fee receiver balance: ", (await connection.getTokenAccountBalance(feeReceiverPaymentTokenAccount)));
     });
 
+    it("lock and distribute", async () => {
+
+        const roundIndex = "2";
+
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
+
+        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
+        console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
+
+        const [auctionRoundConfigPda, auctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, AUCTION_ROUND_ACCOUNT_PREFIX, auctionConfigPda, roundIndex);
+        console.log("auctionRoundConfigPda: ", auctionRoundConfigPda.toBase58());
+
+
+        const tx = await program.methods.lockAndDistribute({
+            padName: padName,
+            roundIndex: roundIndex,
+            auctionConfigBump: auctionConfigBump,
+            auctionRoundConfigBump: auctionRoundConfigBump
+        })
+            .accounts({
+                ender: creatorKeypair.publicKey,
+                auctionConfig: auctionConfigPda,
+                auctionRoundConfig: auctionRoundConfigPda,
+                tokenMintAccount: sellingTokenMintAccount,
+                instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY
+            })
+            .remainingAccounts([
+                // index 0: Cream pad config
+                {
+                    pubkey: creamPadConfigPda,
+                    isWritable: false,
+                    isSigner: false
+                },
+                // index 0: back authority
+                {
+                    pubkey: backAuthorityKeypair.publicKey,
+                    isWritable: false,
+                    isSigner: true
+                }
+            ])
+            .signers([backAuthorityKeypair, creatorKeypair])
+            .rpc({
+                skipPreflight: true
+            });
+
+        console.log("Your transaction signature", tx);
+
+        await delay(delayTimeCount);
+
+        await assertAuctionAccount(program, auctionConfigPda, creatorKeypair.publicKey);
+
+        await assertAuctionRoundAccount(program, auctionRoundConfigPda);
+    });
 });
 
 /// Helper

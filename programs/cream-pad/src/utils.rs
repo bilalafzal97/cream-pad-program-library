@@ -292,7 +292,7 @@ pub fn calculate_price(
     let mut total_boost: f64 = 0.0; // Use f64 for precision
 
     for &boost in boost_history.iter().take(current_round) {
-        total_boost += (1.0 - boost.min(time_shift_max) as f64); // Fix boost impact
+        total_boost += 1.0 - boost.min(time_shift_max) as f64; // Fix boost impact
     }
 
     if decay_model == DecayModelType::Linear {

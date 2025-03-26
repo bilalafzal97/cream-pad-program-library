@@ -1,19 +1,13 @@
 use crate::states::{
-    AuctionAccount, AuctionRoundAccount, AuctionRoundStatus, AuctionStatus, CreamPadAccount,
-    DecayModelType, ProgramStatus, AUCTION_ACCOUNT_PREFIX, AUCTION_ROUND_ACCOUNT_PREFIX,
-    CREAM_PAD_ACCOUNT_PREFIX,
+    AuctionAccount, CreamPadAccount, AUCTION_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    check_back_authority, check_fee_base_point, check_is_program_working, check_program_id,
-    check_round_limit, check_signer_exist, check_signing_authority, check_value_is_zero,
+    check_back_authority, check_is_program_working, check_program_id, check_signer_exist,
     try_get_remaining_account_info,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
-};
+use anchor_spl::token_interface::Mint;
 
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,

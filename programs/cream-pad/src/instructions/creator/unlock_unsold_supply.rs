@@ -1,13 +1,10 @@
 use crate::states::{
-    AuctionAccount, AuctionRoundAccount, AuctionRoundStatus, AuctionStatus, CreamPadAccount,
-    DecayModelType, ProgramStatus, AUCTION_ACCOUNT_PREFIX, AUCTION_ROUND_ACCOUNT_PREFIX,
-    AUCTION_VAULT_PREFIX, CREAM_PAD_ACCOUNT_PREFIX,
+    AuctionAccount, AuctionStatus, CreamPadAccount, AUCTION_ACCOUNT_PREFIX,
+    AUCTION_VAULT_PREFIX,
 };
 use crate::utils::{
-    adjust_amount, check_back_authority, check_can_unlock, check_fee_base_point,
-    check_is_auction_ended, check_is_auction_is_locked, check_is_program_working, check_program_id,
-    check_round_limit, check_signer_exist, check_signing_authority, check_value_is_zero,
-    try_get_remaining_account_info, BASE_POINT,
+    adjust_amount, check_back_authority, check_can_unlock, check_is_auction_is_locked, check_is_program_working, check_program_id, check_signer_exist,
+    try_get_remaining_account_info,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;

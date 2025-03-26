@@ -1,4 +1,3 @@
-use crate::states::{AuctionRoundStatus, AuctionStatus, DecayModelType, ProgramStatus};
 use anchor_lang::prelude::*;
 
 pub const USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX: &str = "UAUDAP";

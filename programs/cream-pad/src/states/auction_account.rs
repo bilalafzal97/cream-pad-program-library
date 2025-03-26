@@ -1,4 +1,4 @@
-use crate::states::{AuctionStatus, DecayModelType, ProgramStatus};
+use crate::states::{AuctionStatus, DecayModelType};
 use anchor_lang::prelude::*;
 
 pub const AUCTION_ACCOUNT_PREFIX: &str = "AAP";
