@@ -6,6 +6,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
     transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
+use crate::events::InitializePadEvent;
 
 pub const FIRST_ROUND: &str = "1";
 
@@ -189,6 +190,16 @@ pub fn handle_initialize_pad(
     auction_round_config.round = 1;
     auction_round_config.price = params.p0;
     auction_round_config.boost = 0;
+
+    // Event
+    let event: InitializePadEvent = InitializePadEvent {
+        timestamp,
+        creator: ctx.accounts.creator.key(),
+        mint: ctx.accounts.token_mint_account.key(),
+        pad_name: params.pad_name.clone(),
+    };
+
+    emit!(event);
 
     Ok(())
 }

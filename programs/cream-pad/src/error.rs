@@ -18,9 +18,6 @@ pub enum CreamPadError {
     #[msg("Invalid distribution and lock base point")]
     InvalidDistributionAndLockBasePoint,
 
-    #[msg("Invalid base point")]
-    InvalidBasePoint,
-
     #[msg("Program halted")]
     ProgramHalted,
 
@@ -86,4 +83,16 @@ pub enum CreamPadError {
 
     #[msg("Invalid buy index")]
     InvalidBuyIndex,
+
+    #[msg("Auction not ended")]
+    AuctionNotEnded,
+
+    #[msg("Auction not at lock")]
+    AuctionNotAtLock,
+
+    #[msg("Auction not at distribution")]
+    AuctionNotAtDistribution,
+
+    #[msg("Auction have time to unlock")]
+    AuctionHaveTimeToUnlock,
 }

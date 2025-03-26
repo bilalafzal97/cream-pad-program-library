@@ -58,14 +58,6 @@ pub fn check_distribution_and_lock_base_point(value: u16) -> Result<()> {
     Ok(())
 }
 
-pub fn check_base_point(value: u16) -> Result<()> {
-    if value > BASE_POINT {
-        return Err(CreamPadError::InvalidBasePoint.into());
-    }
-
-    Ok(())
-}
-
 pub fn check_is_program_working(value: ProgramStatus) -> Result<()> {
     if value.eq(&ProgramStatus::Halted) {
         return Err(CreamPadError::ProgramHalted.into());
@@ -238,6 +230,40 @@ pub fn check_buy_index(value_a: u64, value_b: u64) -> Result<()> {
     Ok(())
 }
 
+pub fn check_is_auction_ended(status: AuctionStatus) -> Result<()> {
+    if !status.eq(&AuctionStatus::Ended) {
+        return Err(CreamPadError::AuctionNotEnded.into());
+    }
+
+    Ok(())
+}
+
+pub fn check_is_auction_is_locked(status: AuctionStatus) -> Result<()> {
+    if !status.eq(&AuctionStatus::UnSoldLockedAndDistributionOpen) {
+        return Err(CreamPadError::AuctionNotAtLock.into());
+    }
+
+    Ok(())
+}
+
+pub fn check_can_unlock(unlock_at: i64, current_at: i64) -> Result<()> {
+    if unlock_at < current_at {
+        return Err(CreamPadError::AuctionNotAtLock.into());
+    }
+
+    Ok(())
+}
+
+pub fn check_is_auction_is_distribution(status: AuctionStatus) -> Result<()> {
+    if !status.eq(&AuctionStatus::UnSoldLockedAndDistributionOpen)
+        && !status.eq(&AuctionStatus::UnSoldUnlocked)
+    {
+        return Err(CreamPadError::AuctionNotAtDistribution.into());
+    }
+
+    Ok(())
+}
+
 ///////////// MATH ///////////////
 
 pub fn calculate_boost(
@@ -248,9 +274,8 @@ pub fn calculate_boost(
     time_shift_max: u64,
 ) -> u64 {
     if actual_sales >= expected_sales {
-        let ratio = actual_sales as f64 / expected_sales as f64; // ✅ Use f64 for precision
-        return (alpha as f64 * omega as f64 * ratio)
-            .min(time_shift_max as f64) as u64;
+        let ratio = actual_sales as f64 / expected_sales as f64; //   Use f64 for precision
+        return (alpha as f64 * omega as f64 * ratio).min(time_shift_max as f64) as u64;
     }
     0 // No boost if sales are below target
 }
@@ -262,12 +287,12 @@ pub fn calculate_price(
     current_round: usize,  // Current round index
     boost_history: &[u64], // Boost applied per round
     decay_model: DecayModelType,
-    time_shift_max: u64,   // Maximum shift in time-based decay
+    time_shift_max: u64, // Maximum shift in time-based decay
 ) -> u64 {
-    let mut total_boost: f64 = 0.0; // ✅ Use f64 for precision
+    let mut total_boost: f64 = 0.0; // Use f64 for precision
 
     for &boost in boost_history.iter().take(current_round) {
-        total_boost += (1.0 - boost.min(time_shift_max) as f64); // ✅ Fix boost impact
+        total_boost += (1.0 - boost.min(time_shift_max) as f64); // Fix boost impact
     }
 
     if decay_model == DecayModelType::Linear {

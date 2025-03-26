@@ -68,4 +68,25 @@ pub mod cream_pad {
     ) -> Result<()> {
         handle_buy(ctx, &params)
     }
+
+    pub fn lock_and_distribute<'info>(
+        ctx: Context<'_, '_, 'info, 'info, LockAndDistributeInputAccounts<'info>>,
+        params: LockAndDistributeInputParams,
+    ) -> Result<()> {
+        handle_lock_and_distribute(ctx, &params)
+    }
+
+    pub fn unlock_unsold_supply<'info>(
+        ctx: Context<'_, '_, 'info, 'info, UnlockUnsoldSupplyInputAccounts<'info>>,
+        params: UnlockUnsoldSupplyInputParams,
+    ) -> Result<()> {
+        handle_unlock_unsold_supply(ctx, &params)
+    }
+
+    pub fn claim_distribution<'info>(
+        ctx: Context<'_, '_, 'info, 'info, ClaimDistributionInputAccounts<'info>>,
+        params: ClaimDistributionParams,
+    ) -> Result<()> {
+        handle_claim_distribution(ctx, &params)
+    }
 }
