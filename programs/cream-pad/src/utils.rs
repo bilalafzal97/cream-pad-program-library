@@ -118,6 +118,22 @@ pub fn check_round_starter(creator: Pubkey, back_authority: Pubkey, starter: Pub
     Ok(())
 }
 
+pub fn check_supply_locker(creator: Pubkey, back_authority: Pubkey, locker: Pubkey) -> Result<()> {
+    if locker != creator && locker != back_authority {
+        return Err(CreamPadError::InvalidSupplyLocker.into());
+    }
+
+    Ok(())
+}
+
+pub fn check_creator(creator: Pubkey, from_input: Pubkey) -> Result<()> {
+    if from_input != creator {
+        return Err(CreamPadError::InvalidCreator.into());
+    }
+
+    Ok(())
+}
+
 pub fn check_is_auction_round_ended(status: AuctionRoundStatus) -> Result<()> {
     if status.eq(&AuctionRoundStatus::Ended) {
         return Err(CreamPadError::AuctionRoundAlreadyEnded.into());

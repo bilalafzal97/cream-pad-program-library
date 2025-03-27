@@ -27,6 +27,9 @@ class ProgramStatus {
     static readonly Halted = {halted: {}};
 }
 
+// export type ProgramStatusType = { normal: {} } | { halted: {} };
+
+
 class DecayModelType {
     static readonly Linear = {linear: {}};
     static readonly Exponential = {exponential: {}};
@@ -786,7 +789,6 @@ describe("cream-pad", () => {
     });
 
     it("lock and distribute", async () => {
-
         const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
@@ -809,7 +811,7 @@ describe("cream-pad", () => {
         })
             .accounts({
                 feeAndRentPayer: feeAndRentPayerKeypair.publicKey,
-                creator: creatorKeypair.publicKey,
+                supplyLocker: creatorKeypair.publicKey,
                 auctionConfig: auctionConfigPda,
                 auctionVaultConfig: auctionVaultConfigPda,
                 tokenMintAccount: sellingTokenMintAccount,

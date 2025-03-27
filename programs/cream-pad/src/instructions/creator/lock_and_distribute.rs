@@ -1,7 +1,7 @@
 use crate::states::{
     AuctionAccount, AuctionStatus, CreamPadAccount, AUCTION_ACCOUNT_PREFIX, AUCTION_VAULT_PREFIX
 };
-use crate::utils::{adjust_amount, check_back_authority, check_is_auction_ended, check_is_program_working, check_program_id, check_signer_exist, try_get_remaining_account_info, BASE_POINT};
+use crate::utils::{adjust_amount, check_back_authority, check_is_auction_ended, check_is_program_working, check_program_id, check_signer_exist, check_supply_locker, try_get_remaining_account_info, BASE_POINT};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_spl::associated_token::AssociatedToken;
@@ -30,7 +30,7 @@ pub struct LockAndDistributeInputAccounts<'info> {
     #[account(mut)]
     pub fee_and_rent_payer: Signer<'info>,
 
-    pub creator: Signer<'info>,
+    pub supply_locker: Signer<'info>,
 
     #[account(
         mut,
@@ -124,6 +124,8 @@ pub fn handle_lock_and_distribute<'info>(
 
         check_signer_exist(instruction, back_authority_account_info.key())?;
     };
+
+    check_supply_locker(auction_config.creator, cream_pad_config.back_authority, ctx.accounts.supply_locker.key())?;
 
     check_is_auction_ended(auction_config.status.clone())?;
 

@@ -1,9 +1,9 @@
 use crate::states::{
-    AuctionAccount, AuctionStatus, CreamPadAccount, AUCTION_ACCOUNT_PREFIX,
-    AUCTION_VAULT_PREFIX,
+    AuctionAccount, AuctionStatus, CreamPadAccount, AUCTION_ACCOUNT_PREFIX, AUCTION_VAULT_PREFIX,
 };
 use crate::utils::{
-    adjust_amount, check_back_authority, check_can_unlock, check_is_auction_is_locked, check_is_program_working, check_program_id, check_signer_exist,
+    adjust_amount, check_back_authority, check_can_unlock, check_creator,
+    check_is_auction_is_locked, check_is_program_working, check_program_id, check_signer_exist,
     try_get_remaining_account_info,
 };
 use anchor_lang::prelude::*;
@@ -119,6 +119,8 @@ pub fn handle_unlock_unsold_supply<'info>(
 
         check_signer_exist(instruction, back_authority_account_info.key())?;
     };
+
+    check_creator(auction_config.creator, ctx.accounts.creator.key())?;
 
     check_is_auction_is_locked(auction_config.status.clone())?;
 

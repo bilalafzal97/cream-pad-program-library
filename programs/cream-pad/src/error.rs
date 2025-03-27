@@ -36,6 +36,12 @@ pub enum CreamPadError {
     #[msg("Invalid round starter")]
     InvalidRoundStarter,
 
+    #[msg("Invalid supply locker")]
+    InvalidSupplyLocker,
+
+    #[msg("Invalid creator")]
+    InvalidCreator,
+
     #[msg("Auction round still have time")]
     AuctionRoundStillHaveTime,
 
