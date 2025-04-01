@@ -48,9 +48,3 @@ anchor build
 anchor test
 ```
 
-## Contributing
-Contributions are welcome! Feel free to open issues and pull requests to enhance Cream Pad.
-
-## License
-Cream Pad is open-source and licensed under the **MIT License**.
-
