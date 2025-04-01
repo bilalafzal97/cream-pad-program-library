@@ -29,7 +29,6 @@ pub struct AuctionAccount {
 
     pub alpha: u64,
 
-    // TODO: test this with u16 same as tmax
     pub time_shift_max: u64,
 
     pub current_price: u64,

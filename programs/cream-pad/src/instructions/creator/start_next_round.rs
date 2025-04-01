@@ -1,14 +1,18 @@
 use crate::states::{
-    AuctionAccount, AuctionRoundAccount, CreamPadAccount, AUCTION_ACCOUNT_PREFIX, AUCTION_ROUND_ACCOUNT_PREFIX,
+    AuctionAccount, AuctionRoundAccount, CreamPadAccount, AUCTION_ACCOUNT_PREFIX,
+    AUCTION_ROUND_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    calculate_price, check_back_authority, check_is_auction_ended_or_sold_out, check_is_previous_auction_round_ended,
-    check_is_program_working, check_next_round, check_previous_round, check_program_id, check_round_starter, check_signer_exist, try_get_remaining_account_info,
+    calculate_price, check_back_authority, check_is_auction_ended_or_sold_out,
+    check_is_previous_auction_round_ended, check_is_program_working, check_next_round,
+    check_previous_round, check_program_id, check_round_starter, check_signer_exist,
+    try_get_remaining_account_info,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_spl::token_interface::Mint;
 
+use crate::events::StartRoundEvent;
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
 };
@@ -137,7 +141,7 @@ pub fn handle_start_next_round<'info>(
     check_previous_round(auction_config.current_round, previous_round_index)?;
 
     check_next_round(
-        auction_config.current_round.saturating_add(1),
+        auction_config.current_round.checked_add(1).unwrap(),
         next_round_index,
     )?;
 
@@ -158,7 +162,7 @@ pub fn handle_start_next_round<'info>(
     // Set Values
     let auction_config: &mut Box<Account<AuctionAccount>> = &mut ctx.accounts.auction_config;
     auction_config.last_block_timestamp = timestamp;
-    auction_config.current_round = auction_config.current_round.saturating_add(1);
+    auction_config.current_round = auction_config.current_round.checked_add(1).unwrap();
     auction_config.current_price = current_price;
 
     let next_auction_round_config: &mut Box<Account<AuctionRoundAccount>> =
@@ -170,6 +174,19 @@ pub fn handle_start_next_round<'info>(
     next_auction_round_config.round = auction_config.current_round;
     next_auction_round_config.price = auction_config.current_price;
     next_auction_round_config.boost = 0;
+
+    // Event
+    let event: StartRoundEvent = StartRoundEvent {
+        timestamp,
+        mint: ctx.accounts.token_mint_account.key(),
+        pad_name: params.pad_name.clone(),
+        previous_round_index: params.previous_round_index.clone(),
+        next_round_index: params.next_round_index.clone(),
+        next_round_duration: params.next_round_duration,
+        current_price: current_price,
+    };
+
+    emit!(event);
 
     Ok(())
 }

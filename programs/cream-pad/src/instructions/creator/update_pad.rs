@@ -1,6 +1,4 @@
-use crate::states::{
-    AuctionAccount, CreamPadAccount, AUCTION_ACCOUNT_PREFIX,
-};
+use crate::states::{AuctionAccount, CreamPadAccount, AUCTION_ACCOUNT_PREFIX};
 use crate::utils::{
     check_back_authority, check_is_program_working, check_program_id, check_signer_exist,
     try_get_remaining_account_info,
@@ -12,6 +10,8 @@ use anchor_spl::token_interface::Mint;
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
 };
+
+use crate::events::UpdatePadEvent;
 
 #[repr(C)]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -88,6 +88,16 @@ pub fn handle_update_pad<'info>(
     let auction_config: &mut Box<Account<AuctionAccount>> = &mut ctx.accounts.auction_config;
     auction_config.last_block_timestamp = timestamp;
     auction_config.payment_receiver = params.payment_receiver;
+
+    // Event
+    let event: UpdatePadEvent = UpdatePadEvent {
+        timestamp,
+        mint: ctx.accounts.token_mint_account.key(),
+        pad_name: params.pad_name.clone(),
+        payment_receiver: params.payment_receiver.key(),
+    };
+
+    emit!(event);
 
     Ok(())
 }

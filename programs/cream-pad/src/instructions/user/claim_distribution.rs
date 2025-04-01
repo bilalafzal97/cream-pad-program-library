@@ -1,13 +1,12 @@
 use crate::states::{
     AuctionAccount, CreamPadAccount, UserAuctionAccount, UserAuctionUnsoldDistributionAccount,
-    AUCTION_ACCOUNT_PREFIX,
-    USER_AUCTION_ACCOUNT_PREFIX, USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX,
+    AUCTION_ACCOUNT_PREFIX, USER_AUCTION_ACCOUNT_PREFIX,
+    USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    adjust_amount, check_back_authority,
-    check_is_auction_is_distribution,
-    check_is_program_working, check_remaining_supply,
-    check_signer_exist, try_get_remaining_account_info, BASE_POINT,
+    adjust_amount, check_back_authority, check_is_auction_is_distribution,
+    check_is_program_working, check_remaining_supply, check_signer_exist,
+    try_get_remaining_account_info, BASE_POINT,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
@@ -16,6 +15,7 @@ use anchor_spl::token_interface::{
     transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
 
+use crate::events::ClaimDistributionEvent;
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
 };
@@ -222,6 +222,17 @@ pub fn handle_claim_distribution<'info>(
     > = &mut ctx.accounts.user_auction_unsold_distribution_config;
     user_auction_unsold_distribution_config.last_block_timestamp = timestamp;
     user_auction_unsold_distribution_config.amount = user_share_amount;
+
+    // Event
+    let event: ClaimDistributionEvent = ClaimDistributionEvent {
+        timestamp,
+        mint: ctx.accounts.token_mint_account.key(),
+        pad_name: params.pad_name.clone(),
+        user: ctx.accounts.user.key(),
+        amount: user_share_amount,
+    };
+
+    emit!(event);
 
     Ok(())
 }

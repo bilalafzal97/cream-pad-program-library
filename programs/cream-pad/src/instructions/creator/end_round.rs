@@ -14,6 +14,7 @@ use anchor_spl::token_interface::Mint;
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
 };
+use crate::events::EndRoundEvent;
 
 #[repr(C)]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -147,6 +148,17 @@ pub fn handle_end_round<'info>(
     auction_round_config.status = AuctionRoundStatus::Ended;
     auction_round_config.round_ended_at = timestamp;
     auction_round_config.boost = boost;
+
+    // Event
+    let event: EndRoundEvent = EndRoundEvent {
+        timestamp,
+        mint: ctx.accounts.token_mint_account.key(),
+        pad_name: params.pad_name.clone(),
+        round_index: params.round_index.clone(),
+        boost: boost,
+    };
+
+    emit!(event);
 
     Ok(())
 }

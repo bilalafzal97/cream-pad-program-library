@@ -70,7 +70,8 @@ pub fn handle_update_config(
     check_distribution_and_lock_base_point(
         params
             .distribution_base_point
-            .saturating_add(params.lock_base_point),
+            .checked_add(params.lock_base_point)
+            .unwrap(),
     )?;
 
     // Set Values

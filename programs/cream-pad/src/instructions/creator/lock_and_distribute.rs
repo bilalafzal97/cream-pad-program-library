@@ -1,13 +1,19 @@
 use crate::states::{
-    AuctionAccount, AuctionStatus, CreamPadAccount, AUCTION_ACCOUNT_PREFIX, AUCTION_VAULT_PREFIX
+    AuctionAccount, AuctionStatus, CreamPadAccount, AUCTION_ACCOUNT_PREFIX, AUCTION_VAULT_PREFIX,
 };
-use crate::utils::{adjust_amount, check_back_authority, check_is_auction_ended, check_is_program_working, check_program_id, check_signer_exist, check_supply_locker, try_get_remaining_account_info, BASE_POINT};
+use crate::utils::{
+    adjust_amount, check_back_authority, check_is_auction_ended, check_is_program_working,
+    check_program_id, check_signer_exist, check_supply_locker, try_get_remaining_account_info,
+    BASE_POINT,
+};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
     transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
+
+use crate::events::LockAndDistributionEvent;
 
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
@@ -42,7 +48,6 @@ pub struct LockAndDistributeInputAccounts<'info> {
         bump = params.auction_config_bump,
     )]
     pub auction_config: Box<Account<'info, AuctionAccount>>,
-
 
     /// CHECK: auction_vault_config
     #[account(
@@ -125,14 +130,33 @@ pub fn handle_lock_and_distribute<'info>(
         check_signer_exist(instruction, back_authority_account_info.key())?;
     };
 
-    check_supply_locker(auction_config.creator, cream_pad_config.back_authority, ctx.accounts.supply_locker.key())?;
+    check_supply_locker(
+        auction_config.creator,
+        cream_pad_config.back_authority,
+        ctx.accounts.supply_locker.key(),
+    )?;
 
     check_is_auction_ended(auction_config.status.clone())?;
 
-    let adjusted_unsold_supply: u64 = adjust_amount(auction_config.total_supply.checked_sub(auction_config.total_supply_sold).unwrap(), 9, ctx.accounts.token_mint_account.decimals);
+    let adjusted_unsold_supply: u64 = adjust_amount(
+        auction_config
+            .total_supply
+            .checked_sub(auction_config.total_supply_sold)
+            .unwrap(),
+        9,
+        ctx.accounts.token_mint_account.decimals,
+    );
 
-    let unsold_supply_for_lock: u64 = adjusted_unsold_supply.checked_mul(cream_pad_config.lock_base_point as u64).unwrap().checked_div(BASE_POINT as u64).unwrap();
-    let unsold_supply_for_distribution: u64 = adjusted_unsold_supply.checked_mul(cream_pad_config.distribution_base_point as u64).unwrap().checked_div(BASE_POINT as u64).unwrap();
+    let unsold_supply_for_lock: u64 = adjusted_unsold_supply
+        .checked_mul(cream_pad_config.lock_base_point as u64)
+        .unwrap()
+        .checked_div(BASE_POINT as u64)
+        .unwrap();
+    let unsold_supply_for_distribution: u64 = adjusted_unsold_supply
+        .checked_mul(cream_pad_config.distribution_base_point as u64)
+        .unwrap()
+        .checked_div(BASE_POINT as u64)
+        .unwrap();
 
     // transfer token to user
     let auction_config_bump_bytes = params.auction_config_bump.to_le_bytes();
@@ -148,7 +172,10 @@ pub fn handle_lock_and_distribute<'info>(
     let transfer_token_to_vault_cpi_accounts = TransferChecked {
         from: ctx.accounts.auction_config_token_account.to_account_info(),
         mint: ctx.accounts.token_mint_account.to_account_info(),
-        to: ctx.accounts.auction_vault_config_token_account.to_account_info(),
+        to: ctx
+            .accounts
+            .auction_vault_config_token_account
+            .to_account_info(),
         authority: ctx.accounts.auction_config.to_account_info(),
     };
 
@@ -164,17 +191,39 @@ pub fn handle_lock_and_distribute<'info>(
         ctx.accounts.token_mint_account.decimals,
     )?;
 
-    let adjusted_back_unsold_supply_for_lock: u64 = adjust_amount(unsold_supply_for_lock, ctx.accounts.token_mint_account.decimals, 9);
-    let adjusted_back_unsold_supply_for_distribution: u64 = adjust_amount(unsold_supply_for_distribution, ctx.accounts.token_mint_account.decimals, 9);
+    let adjusted_back_unsold_supply_for_lock: u64 = adjust_amount(
+        unsold_supply_for_lock,
+        ctx.accounts.token_mint_account.decimals,
+        9,
+    );
+    let adjusted_back_unsold_supply_for_distribution: u64 = adjust_amount(
+        unsold_supply_for_distribution,
+        ctx.accounts.token_mint_account.decimals,
+        9,
+    );
 
     // Set Values
     let auction_config: &mut Box<Account<AuctionAccount>> = &mut ctx.accounts.auction_config;
     auction_config.last_block_timestamp = timestamp;
-    auction_config.status = AuctionStatus::UnSoldLockedAndDistributionOpen;
+    auction_config.status = AuctionStatus::UnsoldLockedAndDistributionOpen;
     auction_config.total_unsold_supply_distribution = adjusted_back_unsold_supply_for_distribution;
     auction_config.total_unsold_supply_locked = adjusted_back_unsold_supply_for_lock;
     auction_config.unsold_supply_locked_at = timestamp;
-    auction_config.unsold_supply_can_unlock_at = timestamp.checked_add(cream_pad_config.lock_duration).unwrap();
+    auction_config.unsold_supply_can_unlock_at = timestamp
+        .checked_add(cream_pad_config.lock_duration)
+        .unwrap();
+
+    // Event
+    let event: LockAndDistributionEvent = LockAndDistributionEvent {
+        timestamp,
+        mint: ctx.accounts.token_mint_account.key(),
+        pad_name: params.pad_name.clone(),
+        total_unsold_supply_locked: auction_config.total_unsold_supply_locked,
+        total_unsold_supply_distribution: auction_config.total_unsold_supply_distribution,
+        unsold_supply_can_unlock_at: auction_config.unsold_supply_can_unlock_at,
+    };
+
+    emit!(event);
 
     Ok(())
 }

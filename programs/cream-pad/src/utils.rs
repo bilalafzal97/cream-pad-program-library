@@ -255,7 +255,7 @@ pub fn check_is_auction_ended(status: AuctionStatus) -> Result<()> {
 }
 
 pub fn check_is_auction_is_locked(status: AuctionStatus) -> Result<()> {
-    if !status.eq(&AuctionStatus::UnSoldLockedAndDistributionOpen) {
+    if !status.eq(&AuctionStatus::UnsoldLockedAndDistributionOpen) {
         return Err(CreamPadError::AuctionNotAtLock.into());
     }
 
@@ -271,8 +271,8 @@ pub fn check_can_unlock(unlock_at: i64, current_at: i64) -> Result<()> {
 }
 
 pub fn check_is_auction_is_distribution(status: AuctionStatus) -> Result<()> {
-    if !status.eq(&AuctionStatus::UnSoldLockedAndDistributionOpen)
-        && !status.eq(&AuctionStatus::UnSoldUnlocked)
+    if !status.eq(&AuctionStatus::UnsoldLockedAndDistributionOpen)
+        && !status.eq(&AuctionStatus::UnsoldUnlocked)
     {
         return Err(CreamPadError::AuctionNotAtDistribution.into());
     }

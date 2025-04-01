@@ -12,6 +12,7 @@ use anchor_spl::token_interface::{
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
 };
+use crate::events::BuyEvent;
 
 #[repr(C)]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -474,6 +475,24 @@ pub fn handle_buy<'info>(
     user_auction_buy_receipt_config.payment = adjusted_back_total_price;
     user_auction_buy_receipt_config.round = current_round_index;
     user_auction_buy_receipt_config.index = buy_index;
+
+
+    // Event
+    let event: BuyEvent = BuyEvent {
+        timestamp,
+        mint: ctx.accounts.token_mint_account.key(),
+        pad_name: params.pad_name.clone(),
+        user: ctx.accounts.user.key(),
+        amount: params.amount,
+        price: auction_config.current_price,
+        fee: adjusted_back_fee_price,
+        total_price: adjusted_back_total_price,
+        current_round: params.current_round_index.clone(),
+        user_buy_index: params.buy_index.clone(),
+        is_ended_and_sold_out: auction_config.status.eq(&AuctionStatus::SoldOut),
+    };
+
+    emit!(event);
 
     Ok(())
 }

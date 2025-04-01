@@ -16,6 +16,7 @@ use anchor_spl::token_interface::{
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
 };
+use crate::events::UnlockUnsoldSupplyEvent;
 
 #[repr(C)]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -167,8 +168,17 @@ pub fn handle_unlock_unsold_supply<'info>(
     // Set Values
     let auction_config: &mut Box<Account<AuctionAccount>> = &mut ctx.accounts.auction_config;
     auction_config.last_block_timestamp = timestamp;
-    auction_config.status = AuctionStatus::UnSoldUnlocked;
+    auction_config.status = AuctionStatus::UnsoldUnlocked;
     auction_config.unsold_supply_unlocked_at = timestamp;
+
+    // Event
+    let event: UnlockUnsoldSupplyEvent = UnlockUnsoldSupplyEvent {
+        timestamp,
+        mint: ctx.accounts.token_mint_account.key(),
+        pad_name: params.pad_name.clone(),
+    };
+
+    emit!(event);
 
     Ok(())
 }

@@ -196,6 +196,14 @@ pub fn handle_initialize_pad(
         creator: ctx.accounts.creator.key(),
         mint: ctx.accounts.token_mint_account.key(),
         pad_name: params.pad_name.clone(),
+        payment_receiver: params.payment_receiver.key(),
+        round_duration: params.round_duration,
+        p0: params.p0,
+        ptmax: params.ptmax,
+        tmax: params.tmax,
+        omega: params.omega,
+        alpha: params.alpha,
+        time_shift_max: params.time_shift_max,
     };
 
     emit!(event);

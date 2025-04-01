@@ -9,4 +9,20 @@ pub struct InitializePadEvent {
     pub mint: Pubkey,
 
     pub pad_name: String,
+
+    pub payment_receiver: Pubkey,
+
+    pub round_duration: i64,
+
+    pub p0: u64,
+
+    pub ptmax: u64,
+
+    pub tmax: u16,
+
+    pub omega: u64,
+
+    pub alpha: u64,
+
+    pub time_shift_max: u64,
 }

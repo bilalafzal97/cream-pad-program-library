@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 
 use crate::states::{CreamPadAccount, ProgramStatus, CREAM_PAD_ACCOUNT_PREFIX};
-use crate::utils::{check_distribution_and_lock_base_point, check_fee_base_point, check_value_is_zero};
+use crate::utils::{
+    check_distribution_and_lock_base_point, check_fee_base_point, check_value_is_zero,
+};
 
 #[repr(C)]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -62,7 +64,12 @@ pub fn handle_initialize(
     check_value_is_zero(params.lock_base_point as usize)?;
     check_value_is_zero(params.lock_duration as usize)?;
     check_fee_base_point(params.fee_base_point)?;
-    check_distribution_and_lock_base_point(params.distribution_base_point.saturating_add(params.lock_base_point))?;
+    check_distribution_and_lock_base_point(
+        params
+            .distribution_base_point
+            .checked_add(params.lock_base_point)
+            .unwrap(),
+    )?;
 
     // Set Values
     let cream_pad_config: &mut Box<Account<CreamPadAccount>> = &mut ctx.accounts.cream_pad_config;

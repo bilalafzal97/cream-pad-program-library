@@ -5,6 +5,6 @@ pub enum AuctionStatus {
     Started,
     Ended,
     SoldOut,
-    UnSoldLockedAndDistributionOpen,
-    UnSoldUnlocked,
+    UnsoldLockedAndDistributionOpen,
+    UnsoldUnlocked,
 }
