@@ -7,7 +7,7 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-cream-pad = "5sqESwK18j9eH8wk58bZocg2eytvQgJvtJgBq3f1MXEs"
+cream-pad = "G2SuCkF4a1YJjuTrqNydNcLx99f9dnpbM5Civ58PAwSU"
 
 [registry]
 url = "https://api.apr.dev"

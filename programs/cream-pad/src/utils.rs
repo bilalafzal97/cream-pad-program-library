@@ -351,6 +351,14 @@ pub fn check_is_receipt_full(current: u64, total: u64) -> Result<()> {
     Ok(())
 }
 
+pub fn check_is_distribution_full(current: u64, total: u64) -> Result<()> {
+    if current > total {
+        return Err(CreamPadError::DistributionFull.into());
+    };
+
+    Ok(())
+}
+
 pub fn check_treasury(
     treasury_from_account: Pubkey,
     treasury_from_input_accounts: Pubkey,

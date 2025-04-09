@@ -14,7 +14,7 @@ mod states;
 
 mod utils;
 
-declare_id!("5sqESwK18j9eH8wk58bZocg2eytvQgJvtJgBq3f1MXEs");
+declare_id!("G2SuCkF4a1YJjuTrqNydNcLx99f9dnpbM5Civ58PAwSU");
 
 #[program]
 pub mod cream_pad {
@@ -165,5 +165,18 @@ pub mod cream_pad {
         params: ClaimCollectionAssetDistributionParams,
     ) -> Result<()> {
         handle_collection_asset_distribution(ctx, &params)
+    }
+
+    pub fn fill_claimed_collection_asset_distribution<'info>(
+        ctx: Context<
+            '_,
+            '_,
+            'info,
+            'info,
+            FillClaimedCollectionAssetDistributionInputAccounts<'info>,
+        >,
+        params: FillClaimedCollectionAssetDistributionInputParams,
+    ) -> Result<()> {
+        handle_fill_claimed_collection_asset_distribution(ctx, &params)
     }
 }
