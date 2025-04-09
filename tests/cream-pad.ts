@@ -55,10 +55,6 @@ import {
 } from "./cream-pad-enum";
 import {tokensToLamports} from "./cream-pad-math";
 import {
-    AUCTION_ACCOUNT_PREFIX,
-    AUCTION_ROUND_ACCOUNT_PREFIX,
-    AUCTION_VAULT_PREFIX, COLLECTION_AUCTION_ACCOUNT_PREFIX, COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX,
-    CREAM_PAD_ACCOUNT_PREFIX,
     getAuctionAccountPdaAndBump,
     getAuctionRoundAccountPdaAndBump,
     getAuctionVaultAccountPdaAndBump, getCollectionAuctionAccountPdaAndBump, getCollectionAuctionRoundAccountPdaAndBump,
@@ -67,10 +63,6 @@ import {
     getUserAuctionBuyReceiptAccountPdaAndBump,
     getUserAuctionRoundAccountPdaAndBump,
     getUserAuctionUnsoldDistributionAccountPdaAndBump,
-    USER_AUCTION_ACCOUNT_PREFIX,
-    USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX,
-    USER_AUCTION_ROUND_ACCOUNT_PREFIX,
-    USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX
 } from "./cream-pad-pda";
 import {
     assertAuctionAccount,
@@ -97,6 +89,7 @@ const userAKeypair: Keypair = Keypair.generate();
 const userBKeypair: Keypair = Keypair.generate();
 const userCKeypair: Keypair = Keypair.generate();
 const collectionUpdateAuthorityKeypair: Keypair = Keypair.generate();
+const treasuryKeypair: Keypair = Keypair.generate();
 
 const sellingTokenDecimal = 8;
 const paymentTokenDecimal = 6;
@@ -109,7 +102,7 @@ const collectionTokenProgramAccount: PublicKey = TOKEN_PROGRAM_ID;
 const sellingTokenProgramAccount: PublicKey = TOKEN_PROGRAM_ID;
 const paymentTokenProgramAccount: PublicKey = TOKEN_2022_PROGRAM_ID;
 
-const padName = "token";
+const padName = "one";
 const collectionPadName = "collection";
 
 const collectionName: string = "Cream Pad Asset Collection";
@@ -540,7 +533,7 @@ describe("cream-pad", () => {
     });
 
     it("initialize program config", async () => {
-        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
         const tx = await program.methods.initialize({
@@ -554,6 +547,7 @@ describe("cream-pad", () => {
             lockBasePoint: 5000,
             lockDuration: new BN(5),
             mintingFee: new BN(mintingFee),
+            treasury: treasuryKeypair.publicKey,
         })
             .accounts({
                 feeAndRentPayer: feeAndRentPayerKeypair.publicKey,
@@ -585,16 +579,17 @@ describe("cream-pad", () => {
             5000,
             5000,
             new BN(5),
-            new BN(mintingFee)
+            new BN(mintingFee),
+            treasuryKeypair.publicKey
         );
     });
 
     it("update program config", async () => {
 
-        const [creamPadConfigPda, creamPadConfigBump] = getCreamPadAccountPdaAndBump(programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda, creamPadConfigBump] = getCreamPadAccountPdaAndBump(programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
-        const [auctionConfigPda] = getAuctionAccountPdaAndBump(programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
+        const [auctionConfigPda] = getAuctionAccountPdaAndBump(programId, padName, sellingTokenMintAccount);
         console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
 
 
@@ -610,7 +605,8 @@ describe("cream-pad", () => {
             lockBasePoint: 5000,
             lockDuration: new BN(5),
             mintingFee: new BN(mintingFee),
-            creamPadConfigBump: creamPadConfigBump
+            treasury: treasuryKeypair.publicKey,
+            creamPadConfigBump: creamPadConfigBump,
         })
             .accounts({
                 signingAuthority: signingAuthorityKeypair.publicKey,
@@ -639,20 +635,21 @@ describe("cream-pad", () => {
             5000,
             5000,
             new BN(5),
-            new BN(mintingFee)
+            new BN(mintingFee),
+            treasuryKeypair.publicKey
         );
     });
 
     it("Initialize Pad Config", async () => {
         const roundIndex = "1";
 
-        const [creamPadConfigPda, creamPadConfigBump] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda, creamPadConfigBump] = getCreamPadAccountPdaAndBump(program.programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
-        const [auctionConfigPda] = getAuctionAccountPdaAndBump(program.programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
+        const [auctionConfigPda] = getAuctionAccountPdaAndBump(program.programId, padName, sellingTokenMintAccount);
         console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
 
-        const [auctionRoundConfigPda] = getAuctionRoundAccountPdaAndBump(programId, AUCTION_ROUND_ACCOUNT_PREFIX, auctionConfigPda, roundIndex);
+        const [auctionRoundConfigPda] = getAuctionRoundAccountPdaAndBump(programId, auctionConfigPda, roundIndex);
         console.log("auctionRoundConfigPda: ", auctionRoundConfigPda.toBase58());
 
         const creatorSellingTokenAccount = await getAssociatedTokenAddress(sellingTokenMintAccount, creatorKeypair.publicKey, true, sellingTokenProgramAccount);
@@ -762,10 +759,10 @@ describe("cream-pad", () => {
     });
 
     it("update Pad Config", async () => {
-        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
-        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
+        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, padName, sellingTokenMintAccount);
         console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
 
 
@@ -841,13 +838,13 @@ describe("cream-pad", () => {
         const roundIndex = "1";
         const userBuyIndex = "1";
 
-        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
-        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
+        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, padName, sellingTokenMintAccount);
         console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
 
-        const [auctionRoundConfigPda, auctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, AUCTION_ROUND_ACCOUNT_PREFIX, auctionConfigPda, roundIndex);
+        const [auctionRoundConfigPda, auctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, auctionConfigPda, roundIndex);
         console.log("auctionRoundConfigPda: ", auctionRoundConfigPda.toBase58());
 
         const auctionConfigSellingTokenAccount = await getAssociatedTokenAddress(sellingTokenMintAccount, auctionConfigPda, true, sellingTokenProgramAccount);
@@ -865,13 +862,13 @@ describe("cream-pad", () => {
         const feeReceiverPaymentTokenAccount = await getAssociatedTokenAddress(paymentTokenMintAccount, feeReceiverKeypair.publicKey, true, paymentTokenProgramAccount);
         console.log("feeReceiverPaymentTokenAccount: ", feeReceiverPaymentTokenAccount.toBase58());
 
-        const [userAuctionConfigPda] = getUserAuctionAccountPdaAndBump(programId, USER_AUCTION_ACCOUNT_PREFIX, auctionConfigPda, userAKeypair.publicKey);
+        const [userAuctionConfigPda] = getUserAuctionAccountPdaAndBump(programId, auctionConfigPda, userAKeypair.publicKey);
         console.log("userAuctionConfigPda: ", userAuctionConfigPda.toBase58());
 
-        const [userAuctionRoundConfigPda] = getUserAuctionRoundAccountPdaAndBump(programId, USER_AUCTION_ROUND_ACCOUNT_PREFIX, auctionRoundConfigPda, userAuctionConfigPda);
+        const [userAuctionRoundConfigPda] = getUserAuctionRoundAccountPdaAndBump(programId, auctionRoundConfigPda, userAuctionConfigPda);
         console.log("userAuctionRoundConfigPda: ", userAuctionRoundConfigPda.toBase58());
 
-        const [userAuctionBuyReceiptConfigPda] = getUserAuctionBuyReceiptAccountPdaAndBump(programId, USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX, userAuctionConfigPda, userBuyIndex);
+        const [userAuctionBuyReceiptConfigPda] = getUserAuctionBuyReceiptAccountPdaAndBump(programId, userAuctionConfigPda, userBuyIndex);
         console.log("userAuctionBuyReceiptConfigPda: ", userAuctionBuyReceiptConfigPda.toBase58());
 
         const tx = await program.methods.buy({
@@ -1074,18 +1071,19 @@ describe("cream-pad", () => {
         await assertTokenBalance(connection, feeReceiverPaymentTokenAccount, 75, "Fee Receiver Payment token account", "Fee Receiver Payment token account");
     });
 
+
     it("End Round 1", async () => {
         await delay(5000);
 
         const roundIndex = "1";
 
-        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
-        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
+        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, padName, sellingTokenMintAccount);
         console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
 
-        const [auctionRoundConfigPda, auctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, AUCTION_ROUND_ACCOUNT_PREFIX, auctionConfigPda, roundIndex);
+        const [auctionRoundConfigPda, auctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, auctionConfigPda, roundIndex);
         console.log("auctionRoundConfigPda: ", auctionRoundConfigPda.toBase58());
 
 
@@ -1187,16 +1185,16 @@ describe("cream-pad", () => {
         const previousRoundIndex = "1";
         const nextRoundIndex = "2";
 
-        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
-        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
+        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, padName, sellingTokenMintAccount);
         console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
 
-        const [previousAuctionRoundConfigPda, previousAuctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, AUCTION_ROUND_ACCOUNT_PREFIX, auctionConfigPda, previousRoundIndex);
+        const [previousAuctionRoundConfigPda, previousAuctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, auctionConfigPda, previousRoundIndex);
         console.log("previousAuctionRoundConfigPda: ", previousAuctionRoundConfigPda.toBase58());
 
-        const [nextAuctionRoundConfigPda] = getAuctionRoundAccountPdaAndBump(programId, AUCTION_ROUND_ACCOUNT_PREFIX, auctionConfigPda, nextRoundIndex);
+        const [nextAuctionRoundConfigPda] = getAuctionRoundAccountPdaAndBump(programId, auctionConfigPda, nextRoundIndex);
         console.log("nextAuctionRoundConfigPda: ", nextAuctionRoundConfigPda.toBase58());
 
         const tx = await program.methods.startNextRound({
@@ -1306,13 +1304,13 @@ describe("cream-pad", () => {
 
         const roundIndex = "2";
 
-        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
-        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
+        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, padName, sellingTokenMintAccount);
         console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
 
-        const [auctionRoundConfigPda, auctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, AUCTION_ROUND_ACCOUNT_PREFIX, auctionConfigPda, roundIndex);
+        const [auctionRoundConfigPda, auctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, auctionConfigPda, roundIndex);
         console.log("auctionRoundConfigPda: ", auctionRoundConfigPda.toBase58());
 
 
@@ -1412,13 +1410,13 @@ describe("cream-pad", () => {
     });
 
     it("lock and distribute", async () => {
-        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
-        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
+        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, padName, sellingTokenMintAccount);
         console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
 
-        const [auctionVaultConfigPda, auctionVaultConfigBump] = getAuctionVaultAccountPdaAndBump(programId, AUCTION_VAULT_PREFIX, auctionConfigPda);
+        const [auctionVaultConfigPda, auctionVaultConfigBump] = getAuctionVaultAccountPdaAndBump(programId, auctionConfigPda);
         console.log("auctionVaultConfigPda: ", auctionVaultConfigPda.toBase58());
 
         const auctionConfigSellingTokenAccount = await getAssociatedTokenAddress(sellingTokenMintAccount, auctionConfigPda, true, sellingTokenProgramAccount);
@@ -1515,13 +1513,13 @@ describe("cream-pad", () => {
     it("unlock unsold supply", async () => {
         await delay(5000);
 
-        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
-        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
+        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, padName, sellingTokenMintAccount);
         console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
 
-        const [auctionVaultConfigPda, auctionVaultConfigBump] = getAuctionVaultAccountPdaAndBump(programId, AUCTION_VAULT_PREFIX, auctionConfigPda);
+        const [auctionVaultConfigPda, auctionVaultConfigBump] = getAuctionVaultAccountPdaAndBump(programId, auctionConfigPda);
         console.log("auctionVaultConfigPda: ", auctionVaultConfigPda.toBase58());
 
         const auctionVaultConfigSellingTokenAccount = await getAssociatedTokenAddress(sellingTokenMintAccount, auctionVaultConfigPda, true, sellingTokenProgramAccount);
@@ -1614,147 +1612,17 @@ describe("cream-pad", () => {
         await assertTokenBalance(connection, creatorSellingTokenAccount, 862.5, "Creator Selling Token Account", "Creator Selling Token Account");
     });
 
-
-    it("Buy user a - 1", async () => {
-        const roundIndex = "1";
-        const userBuyIndex = "1";
-
-        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
-        console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
-
-        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, AUCTION_ACCOUNT_PREFIX, padName, sellingTokenMintAccount);
-        console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
-
-        const [auctionRoundConfigPda, auctionRoundConfigBump] = getAuctionRoundAccountPdaAndBump(programId, AUCTION_ROUND_ACCOUNT_PREFIX, auctionConfigPda, roundIndex);
-        console.log("auctionRoundConfigPda: ", auctionRoundConfigPda.toBase58());
-
-        const auctionConfigSellingTokenAccount = await getAssociatedTokenAddress(sellingTokenMintAccount, auctionConfigPda, true, sellingTokenProgramAccount);
-        console.log("auctionConfigSellingTokenAccount: ", auctionConfigSellingTokenAccount.toBase58());
-
-        const userSellingTokenAccount = await getAssociatedTokenAddress(sellingTokenMintAccount, userAKeypair.publicKey, true, sellingTokenProgramAccount);
-        console.log("userSellingTokenAccount: ", userSellingTokenAccount.toBase58());
-
-        const userPaymentTokenAccount = await getAssociatedTokenAddress(paymentTokenMintAccount, userAKeypair.publicKey, true, paymentTokenProgramAccount);
-        console.log("userPaymentTokenAccount: ", userPaymentTokenAccount.toBase58());
-
-        const paymentReceiverPaymentTokenAccount = await getAssociatedTokenAddress(paymentTokenMintAccount, paymentReceiverKeypair.publicKey, true, paymentTokenProgramAccount);
-        console.log("paymentReceiverPaymentTokenAccount: ", paymentReceiverPaymentTokenAccount.toBase58());
-
-        const feeReceiverPaymentTokenAccount = await getAssociatedTokenAddress(paymentTokenMintAccount, feeReceiverKeypair.publicKey, true, paymentTokenProgramAccount);
-        console.log("feeReceiverPaymentTokenAccount: ", feeReceiverPaymentTokenAccount.toBase58());
-
-        const [userAuctionConfigPda, userAuctionConfigBump] = getUserAuctionAccountPdaAndBump(programId, USER_AUCTION_ACCOUNT_PREFIX, auctionConfigPda, userAKeypair.publicKey);
-        console.log("userAuctionConfigPda: ", userAuctionConfigPda.toBase58());
-
-
-        const [userAuctionUnsoldDistributionConfigPda] = getUserAuctionUnsoldDistributionAccountPdaAndBump(programId, USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX, userAuctionConfigPda);
-        console.log("userAuctionUnsoldDistributionConfigPda: ", userAuctionUnsoldDistributionConfigPda.toBase58());
-
-
-        const tx = await program.methods.claimDistribution({
-            padName: padName,
-            auctionConfigBump: auctionConfigBump,
-            userAuctionConfigBump: userAuctionConfigBump,
-        })
-            .accounts({
-                feeAndRentPayer: feeAndRentPayerKeypair.publicKey,
-                user: userAKeypair.publicKey,
-                auctionConfig: auctionConfigPda,
-                userAuctionConfig: userAuctionConfigPda,
-                tokenMintAccount: sellingTokenMintAccount,
-                tokenProgram: sellingTokenProgramAccount,
-                userTokenAccount: userSellingTokenAccount,
-                auctionConfigTokenAccount: auctionConfigSellingTokenAccount,
-                userAuctionUnsoldDistributionConfig: userAuctionUnsoldDistributionConfigPda,
-                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-                systemProgram: SystemProgram.programId,
-                rent: SYSVAR_RENT_PUBKEY,
-                instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY
-            })
-            .remainingAccounts([
-                // index 0: Cream pad config
-                {
-                    pubkey: creamPadConfigPda,
-                    isWritable: false,
-                    isSigner: false
-                },
-                // index 0: back authority
-                {
-                    pubkey: backAuthorityKeypair.publicKey,
-                    isWritable: false,
-                    isSigner: true
-                }
-            ])
-            .signers([feeAndRentPayerKeypair, backAuthorityKeypair, userAKeypair])
-            .rpc({
-                skipPreflight: true
-            });
-
-        console.log("Your transaction signature", tx);
-
-        await delay(delayTimeCount);
-
-        const auctionConfigData = await program.account.auctionAccount.fetch(auctionConfigPda);
-
-        await assertUserAuctionUnsoldDistributionAccount(
-            program,
-            userAuctionUnsoldDistributionConfigPda,
-            new BN(tokensToLamports(62.5, 9).toString())
-        );
-
-
-        await assertTokenBalance(connection, auctionConfigSellingTokenAccount, 0, "Auction Config Selling Token Account", "Auction Config Selling Token Account");
-
-        await assertTokenBalance(connection, userSellingTokenAccount, 137.5, "User Selling Token Account", "User Selling Token Account");
-
-        await assertAuctionAccount(
-            program,
-            auctionConfigPda,
-            creatorKeypair.publicKey,
-            sellingTokenMintAccount,
-            paymentTokenMintAccount,
-            paymentReceiverKeypair.publicKey,
-            AuctionStatus.UnsoldUnlocked,
-            new BN(tokensToLamports(4, 9).toString()),
-            new BN(tokensToLamports(1.2, 9).toString()),
-            2,
-            new BN(tokensToLamports(2, 9).toString()),
-            new BN(tokensToLamports(2, 9).toString()),
-            new BN(2),
-            new BN(tokensToLamports(1.2, 9).toString()),
-            2,
-            [
-                new BN(0),
-                new BN(0)
-            ],
-            DecayModel.Linear,
-            new BN(tokensToLamports(200, 9).toString()),
-            new BN(tokensToLamports(75, 9).toString()),
-            new BN(1),
-            new BN(1),
-            new BN(tokensToLamports(62.5, 9).toString()),
-            auctionConfigData.unsoldSupplyLockedAt,
-            auctionConfigData.unsoldSupplyCanUnlockAt,
-            auctionConfigData.unsoldSupplyUnlockedAt,
-            new BN(tokensToLamports(62.5, 9).toString()),
-            new BN(tokensToLamports(62.5, 9).toString()),
-            new BN(1),
-            new BN(tokensToLamports(300, 9).toString()),
-            new BN(tokensToLamports(75, 9).toString())
-        );
-    });
-
-    //// Collection
+    // Collection
     it("Initialize Collection Pad Config", async () => {
         const roundIndex = "1";
 
-        const [creamPadConfigPda, creamPadConfigBump] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        const [creamPadConfigPda, creamPadConfigBump] = getCreamPadAccountPdaAndBump(program.programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
-        const [collectionAuctionConfigPda] = getCollectionAuctionAccountPdaAndBump(program.programId, COLLECTION_AUCTION_ACCOUNT_PREFIX, collectionPadName, collectionMintAccount);
+        const [collectionAuctionConfigPda] = getCollectionAuctionAccountPdaAndBump(program.programId, collectionPadName, collectionMintAccount);
         console.log("collectionAuctionConfigPda: ", collectionAuctionConfigPda.toBase58());
 
-        const [collectionAuctionRoundConfigPda] = getCollectionAuctionRoundAccountPdaAndBump(programId, COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX, collectionAuctionConfigPda, roundIndex);
+        const [collectionAuctionRoundConfigPda] = getCollectionAuctionRoundAccountPdaAndBump(programId, collectionAuctionConfigPda, roundIndex);
         console.log("collectionAuctionRoundConfigPda: ", collectionAuctionRoundConfigPda.toBase58());
 
 

@@ -1,19 +1,19 @@
 /// Prefix
 import {PublicKey} from "@solana/web3.js";
 
-export const CREAM_PAD_ACCOUNT_PREFIX: string = "CPAP";
+const CREAM_PAD_ACCOUNT_PREFIX: string = "CPAP";
 
-export const AUCTION_ACCOUNT_PREFIX: string = "AAP";
-export const AUCTION_VAULT_PREFIX: string = "AVP";
-export const AUCTION_ROUND_ACCOUNT_PREFIX: string = "ARAP";
+const AUCTION_ACCOUNT_PREFIX: string = "AAP";
+const AUCTION_VAULT_PREFIX: string = "AVP";
+const AUCTION_ROUND_ACCOUNT_PREFIX: string = "ARAP";
 
-export const USER_AUCTION_ACCOUNT_PREFIX: string = "UAAP";
-export const USER_AUCTION_ROUND_ACCOUNT_PREFIX: string = "UARAP";
-export const USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX: string = "UABRAP";
-export const USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX: string = "UAUDAP";
+const USER_AUCTION_ACCOUNT_PREFIX: string = "UAAP";
+const USER_AUCTION_ROUND_ACCOUNT_PREFIX: string = "UARAP";
+const USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX: string = "UABRAP";
+const USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX: string = "UAUDAP";
 
-export const COLLECTION_AUCTION_ACCOUNT_PREFIX: string = "CAAP";
-export const COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX: string = "CARAP";
+const COLLECTION_AUCTION_ACCOUNT_PREFIX: string = "CAAP";
+const COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX: string = "CARAP";
 
 
 ////// PDAs
@@ -29,7 +29,7 @@ export function getMetadataPda(programAddress: PublicKey, mint: PublicKey): Publ
     return metadataPda;
 }
 
-export function getMasterEditionPda(programAddress: PublicKey,mint: PublicKey): PublicKey {
+export function getMasterEditionPda(programAddress: PublicKey, mint: PublicKey): PublicKey {
     const [masterEditionPda] = PublicKey.findProgramAddressSync(
         [
             Buffer.from('metadata'),
@@ -43,17 +43,17 @@ export function getMasterEditionPda(programAddress: PublicKey,mint: PublicKey): 
     return masterEditionPda;
 }
 
-export function getCreamPadAccountPdaAndBump(programAddress: PublicKey, prefix: string): [PublicKey, number] {
+export function getCreamPadAccountPdaAndBump(programAddress: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
-        [Buffer.from(prefix)],
+        [Buffer.from(CREAM_PAD_ACCOUNT_PREFIX)],
         programAddress
     )
 }
 
-export function getAuctionAccountPdaAndBump(programAddress: PublicKey, prefix: string, padName: string, tokenMintAccount: PublicKey): [PublicKey, number] {
+export function getAuctionAccountPdaAndBump(programAddress: PublicKey, padName: string, tokenMintAccount: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
         [
-            Buffer.from(prefix),
+            Buffer.from(AUCTION_ACCOUNT_PREFIX),
             Buffer.from(padName),
             tokenMintAccount.toBuffer()
         ],
@@ -61,20 +61,20 @@ export function getAuctionAccountPdaAndBump(programAddress: PublicKey, prefix: s
     )
 }
 
-export function getAuctionVaultAccountPdaAndBump(programAddress: PublicKey, prefix: string, auctionConfig: PublicKey): [PublicKey, number] {
+export function getAuctionVaultAccountPdaAndBump(programAddress: PublicKey, auctionConfig: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
         [
-            Buffer.from(prefix),
+            Buffer.from(AUCTION_VAULT_PREFIX),
             auctionConfig.toBuffer(),
         ],
         programAddress
     )
 }
 
-export function getAuctionRoundAccountPdaAndBump(programAddress: PublicKey, prefix: string, auctionConfig: PublicKey, auctionRoundIndex: string): [PublicKey, number] {
+export function getAuctionRoundAccountPdaAndBump(programAddress: PublicKey, auctionConfig: PublicKey, auctionRoundIndex: string): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
         [
-            Buffer.from(prefix),
+            Buffer.from(AUCTION_ROUND_ACCOUNT_PREFIX),
             auctionConfig.toBuffer(),
             Buffer.from(auctionRoundIndex),
         ],
@@ -83,10 +83,10 @@ export function getAuctionRoundAccountPdaAndBump(programAddress: PublicKey, pref
 }
 
 
-export function getUserAuctionAccountPdaAndBump(programAddress: PublicKey, prefix: string, auctionConfig: PublicKey, user: PublicKey): [PublicKey, number] {
+export function getUserAuctionAccountPdaAndBump(programAddress: PublicKey, auctionConfig: PublicKey, user: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
         [
-            Buffer.from(prefix),
+            Buffer.from(USER_AUCTION_ACCOUNT_PREFIX),
             auctionConfig.toBuffer(),
             user.toBuffer(),
         ],
@@ -94,10 +94,10 @@ export function getUserAuctionAccountPdaAndBump(programAddress: PublicKey, prefi
     )
 }
 
-export function getUserAuctionRoundAccountPdaAndBump(programAddress: PublicKey, prefix: string, auctionRoundConfig: PublicKey, userAuctionConfig: PublicKey): [PublicKey, number] {
+export function getUserAuctionRoundAccountPdaAndBump(programAddress: PublicKey, auctionRoundConfig: PublicKey, userAuctionConfig: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
         [
-            Buffer.from(prefix),
+            Buffer.from(USER_AUCTION_ROUND_ACCOUNT_PREFIX),
             auctionRoundConfig.toBuffer(),
             userAuctionConfig.toBuffer(),
         ],
@@ -105,10 +105,10 @@ export function getUserAuctionRoundAccountPdaAndBump(programAddress: PublicKey, 
     )
 }
 
-export function getUserAuctionBuyReceiptAccountPdaAndBump(programAddress: PublicKey, prefix: string, userAuctionConfig: PublicKey, userBuyIndex: string): [PublicKey, number] {
+export function getUserAuctionBuyReceiptAccountPdaAndBump(programAddress: PublicKey, userAuctionConfig: PublicKey, userBuyIndex: string): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
         [
-            Buffer.from(prefix),
+            Buffer.from(USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX),
             userAuctionConfig.toBuffer(),
             Buffer.from(userBuyIndex),
         ],
@@ -116,20 +116,20 @@ export function getUserAuctionBuyReceiptAccountPdaAndBump(programAddress: Public
     )
 }
 
-export function getUserAuctionUnsoldDistributionAccountPdaAndBump(programAddress: PublicKey, prefix: string, userAuctionConfig: PublicKey): [PublicKey, number] {
+export function getUserAuctionUnsoldDistributionAccountPdaAndBump(programAddress: PublicKey, userAuctionConfig: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
         [
-            Buffer.from(prefix),
+            Buffer.from(USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX),
             userAuctionConfig.toBuffer(),
         ],
         programAddress
     )
 }
 
-export function getCollectionAuctionAccountPdaAndBump(programAddress: PublicKey, prefix: string, padName: string, tokenMintAccount: PublicKey): [PublicKey, number] {
+export function getCollectionAuctionAccountPdaAndBump(programAddress: PublicKey, padName: string, tokenMintAccount: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
         [
-            Buffer.from(prefix),
+            Buffer.from(COLLECTION_AUCTION_ACCOUNT_PREFIX),
             Buffer.from(padName),
             tokenMintAccount.toBuffer()
         ],
@@ -137,10 +137,10 @@ export function getCollectionAuctionAccountPdaAndBump(programAddress: PublicKey,
     )
 }
 
-export function getCollectionAuctionRoundAccountPdaAndBump(programAddress: PublicKey, prefix: string, collectionAuctionConfig: PublicKey, auctionRoundIndex: string): [PublicKey, number] {
+export function getCollectionAuctionRoundAccountPdaAndBump(programAddress: PublicKey, collectionAuctionConfig: PublicKey, auctionRoundIndex: string): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
         [
-            Buffer.from(prefix),
+            Buffer.from(COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX),
             collectionAuctionConfig.toBuffer(),
             Buffer.from(auctionRoundIndex),
         ],

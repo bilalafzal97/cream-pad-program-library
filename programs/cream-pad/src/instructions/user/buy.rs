@@ -8,9 +8,8 @@ use crate::utils::{
     adjust_amount, calculate_boost, calculate_total_price, check_back_authority, check_buy_index,
     check_current_round, check_is_auction_ended_or_sold_out, check_is_auction_round_ended,
     check_is_auction_round_time_run_out, check_is_program_working, check_payment_fee_receiver,
-    check_payment_mint_account, check_payment_receiver, check_remaining_supply,
-    check_round_buy_limit, check_signer_exist, check_token_account_authority,
-    try_get_remaining_account_info, BASE_POINT,
+    check_payment_mint_account, check_payment_receiver, check_remaining_supply, check_signer_exist,
+    check_token_account_authority, try_get_remaining_account_info, BASE_POINT,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
@@ -161,17 +160,6 @@ pub fn handle_buy<'info>(
     };
 
     let user_auction_config: &Box<Account<UserAuctionAccount>> = &ctx.accounts.user_auction_config;
-
-    let user_auction_round_config: &Box<Account<UserAuctionRoundAccount>> =
-        &ctx.accounts.user_auction_round_config;
-
-    check_round_buy_limit(
-        user_auction_round_config
-            .total_buy_amount
-            .checked_add(params.amount)
-            .unwrap(),
-        auction_round_config.buy_limit,
-    )?;
 
     let buy_index: u64 = params.buy_index.clone().parse().unwrap();
 

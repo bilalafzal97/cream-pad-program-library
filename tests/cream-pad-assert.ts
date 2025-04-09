@@ -26,7 +26,7 @@ export async function assertTokenBalance(connection: Connection, ata: PublicKey,
     assert(ataBalance.value.uiAmount === balance, assertMessage);
 }
 
-export async function assertCreamPadAccount(program: Program<CreamPad>, pdaAddress: PublicKey, signingAuthority: PublicKey, backAuthority: PublicKey, isBackAuthorityRequired: boolean, programStatus: ProgramStatusType, isFeeRequired: boolean, feeBasePoint: number, feeReceiver: PublicKey, roundLimit: number, distributionBasePoint: number, lockBasePoint: number, lockDuration: BN, mintingFee: BN) {
+export async function assertCreamPadAccount(program: Program<CreamPad>, pdaAddress: PublicKey, signingAuthority: PublicKey, backAuthority: PublicKey, isBackAuthorityRequired: boolean, programStatus: ProgramStatusType, isFeeRequired: boolean, feeBasePoint: number, feeReceiver: PublicKey, roundLimit: number, distributionBasePoint: number, lockBasePoint: number, lockDuration: BN, mintingFee: BN, treasury: PublicKey) {
     const data = await program.account.creamPadAccount.fetch(pdaAddress);
 
     console.log("Cream pad account: >>>>>>>> ", data);
@@ -43,6 +43,7 @@ export async function assertCreamPadAccount(program: Program<CreamPad>, pdaAddre
     assert(data.lockBasePoint === lockBasePoint, "Cream Pad -> lockBasePoint");
     assert(data.lockDuration.toNumber() === lockDuration.toNumber(), "Cream Pad -> lockDuration");
     assert(data.mintingFee.toNumber() === mintingFee.toNumber(), "Cream Pad -> mintingFee");
+    assert(data.treasury.toBase58 === treasury.toBase58, "Cream Pad -> treasury");
 }
 
 export async function assertAuctionAccount(
