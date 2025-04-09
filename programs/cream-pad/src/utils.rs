@@ -362,6 +362,14 @@ pub fn check_treasury(
     Ok(())
 }
 
+pub fn check_eligible_for_collection_distribution(share: u64) -> Result<()> {
+    if share <= 0 {
+        return Err(CreamPadError::NotEligibleForCollectionDistribution.into());
+    }
+
+    Ok(())
+}
+
 ///////////// MATH ///////////////
 
 pub fn calculate_boost(

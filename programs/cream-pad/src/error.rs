@@ -128,4 +128,7 @@ pub enum CreamPadError {
 
     #[msg("Receipt full")]
     ReceiptFull,
+
+    #[msg("Not eligible for collection distribution")]
+    NotEligibleForCollectionDistribution,
 }

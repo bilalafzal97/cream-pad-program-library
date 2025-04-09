@@ -16,6 +16,7 @@ pub use treasury_and_distribution_event::*;
 pub use mint_treasury_asset_event::*;
 pub use buy_collection_asset_event::*;
 pub use fill_bought_collection_asset_event::*;
+pub use collection_claim_distribution_event::*;
 
 pub mod buy_event;
 pub mod claim_distribution_event;
@@ -35,3 +36,4 @@ pub mod treasury_and_distribution_event;
 pub mod mint_treasury_asset_event;
 pub mod buy_collection_asset_event;
 pub mod fill_bought_collection_asset_event;
+pub mod collection_claim_distribution_event;
