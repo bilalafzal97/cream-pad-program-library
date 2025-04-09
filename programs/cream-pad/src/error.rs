@@ -101,4 +101,31 @@ pub enum CreamPadError {
 
     #[msg("Auction have time to unlock")]
     AuctionHaveTimeToUnlock,
+
+    #[msg("Buy limit exceeded")]
+    BuyLimitExceeded,
+
+    #[msg("Duplicate creator address")]
+    DuplicateCreatorAddress,
+
+    #[msg("Invalid creator share")]
+    InvalidCreatorShare,
+
+    #[msg("Invalid seller fee basis points")]
+    InvalidSellerFeeBasisPoints,
+
+    #[msg("The supply must be evenly divisible by t_max.")]
+    SupplyNotEvenlyDivisible,
+
+    #[msg("Exceeding end index")]
+    ExceedingEndIndex,
+
+    #[msg("Treasury full")]
+    TreasuryFull,
+
+    #[msg("Invalid treasury")]
+    InvalidTreasury,
+
+    #[msg("Receipt full")]
+    ReceiptFull,
 }

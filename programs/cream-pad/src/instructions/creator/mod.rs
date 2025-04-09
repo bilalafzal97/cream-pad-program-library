@@ -4,6 +4,14 @@ pub use end_round::*;
 pub use start_next_round::*;
 pub use lock_and_distribute::*;
 pub use unlock_unsold_supply::*;
+pub use initialize_collection_pad::*;
+pub use update_collection_pad::*;
+pub use end_collection_round::*;
+pub use start_collection_round::*;
+pub use take_collection_update_authority::*;
+pub use give_collection_update_authority::*;
+pub use treasury_and_distribution::*;
+pub use mint_treasury_asset::*;
 
 pub mod initialize_pad;
 pub mod update_pad;
@@ -11,3 +19,12 @@ pub mod end_round;
 pub mod start_next_round;
 pub mod lock_and_distribute;
 pub mod unlock_unsold_supply;
+
+pub mod initialize_collection_pad;
+pub mod update_collection_pad;
+pub mod end_collection_round;
+pub mod start_collection_round;
+pub mod take_collection_update_authority;
+pub mod give_collection_update_authority;
+pub mod treasury_and_distribution;
+pub mod mint_treasury_asset;

@@ -8,7 +8,9 @@
         "tweetnacl": "^1.0.3",
         "bs58": "^5.0.0",
         "nanoid": "3.3.4",
-        "@solana/spl-token": "0.4.12"
+        "@solana/spl-token": "0.4.12",
+        "@metaplex-foundation/umi": "^1.0.0",
+        "@metaplex-foundation/mpl-token-metadata": "2.11.0"
     },
     "devDependencies": {
         "chai": "^4.3.4",

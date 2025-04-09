@@ -29,6 +29,10 @@ pub struct CreamPadAccount {
     pub lock_base_point: u16,
 
     pub lock_duration: i64,
+
+    pub minting_fee: u64,
+
+    pub treasury: Pubkey
 }
 
 impl CreamPadAccount {
@@ -46,5 +50,7 @@ impl CreamPadAccount {
             + 2 // distribution_base_point
             + 2 // lock_base_point
             + 8 // lock_duration
+            + 8 // minting_fee
+            + 32 // treasury
     }
 }

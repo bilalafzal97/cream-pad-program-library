@@ -34,6 +34,10 @@ pub struct InitializePadInputParams {
 
     pub decay_model: DecayModelType,
 
+    pub have_buy_limit: bool,
+
+    pub buy_limit: u64,
+
     pub pad_name: String,
 
     // Bumps
@@ -138,6 +142,10 @@ pub fn handle_initialize_pad(
     check_value_is_zero(params.round_duration as usize)?;
     check_value_is_zero(params.supply as usize)?;
 
+    if params.have_buy_limit {
+        check_value_is_zero(params.buy_limit as usize)?;
+    };
+
     check_round_limit(cream_pad_config.round_limit, params.tmax)?;
 
     check_ptmax(params.p0, params.ptmax)?;
@@ -189,6 +197,8 @@ pub fn handle_initialize_pad(
     auction_round_config.round = 1;
     auction_round_config.price = params.p0;
     auction_round_config.boost = 0;
+    auction_round_config.have_buy_limit = params.have_buy_limit;
+    auction_round_config.buy_limit = params.buy_limit;
 
     // Event
     let event: InitializePadEvent = InitializePadEvent {
@@ -204,6 +214,8 @@ pub fn handle_initialize_pad(
         omega: params.omega,
         alpha: params.alpha,
         time_shift_max: params.time_shift_max,
+        have_buy_limit: params.have_buy_limit,
+        buy_limit: params.buy_limit,
     };
 
     emit!(event);

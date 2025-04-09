@@ -1,6 +1,6 @@
 use crate::states::{
-    AuctionAccount, AuctionRoundAccount, CreamPadAccount, AUCTION_ACCOUNT_PREFIX,
-    AUCTION_ROUND_ACCOUNT_PREFIX,
+    CollectionAuctionAccount, CollectionAuctionRoundAccount, CreamPadAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX,
+    COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX
 };
 use crate::utils::{
     calculate_price, check_back_authority, check_is_auction_ended_or_sold_out,
@@ -12,14 +12,14 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_spl::token_interface::Mint;
 
-use crate::events::StartRoundEvent;
+use crate::events::StartCollectionRoundEvent;
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
 };
 
 #[repr(C)]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct StartNextRoundInputParams {
+pub struct StartNextCollectionRoundInputParams {
     pub pad_name: String,
 
     pub previous_round_index: String,
@@ -33,14 +33,14 @@ pub struct StartNextRoundInputParams {
     pub next_buy_limit: u64,
 
     // Bumps
-    pub auction_config_bump: u8,
+    pub collection_auction_config_bump: u8,
 
-    pub previous_auction_round_config_bump: u8,
+    pub previous_collection_auction_round_config_bump: u8,
 }
 
 #[derive(Accounts)]
-#[instruction(params: StartNextRoundInputParams)]
-pub struct StartNextRoundInputAccounts<'info> {
+#[instruction(params: StartNextCollectionRoundInputParams)]
+pub struct StartNextCollectionRoundInputAccounts<'info> {
     #[account(mut)]
     pub fee_and_rent_payer: Signer<'info>,
 
@@ -49,38 +49,38 @@ pub struct StartNextRoundInputAccounts<'info> {
     #[account(
         mut,
         seeds = [
-        AUCTION_ACCOUNT_PREFIX.as_ref(),
+        COLLECTION_AUCTION_ACCOUNT_PREFIX.as_ref(),
         params.pad_name.as_ref(),
-        token_mint_account.key().as_ref(),
+        collection_mint_account.key().as_ref(),
         ],
-        bump = params.auction_config_bump,
+        bump = params.collection_auction_config_bump,
     )]
-    pub auction_config: Box<Account<'info, AuctionAccount>>,
+    pub collection_auction_config: Box<Account<'info, CollectionAuctionAccount>>,
 
     #[account(
         seeds = [
-        AUCTION_ROUND_ACCOUNT_PREFIX.as_ref(),
-        auction_config.key().as_ref(),
+        COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX.as_ref(),
+        collection_auction_config.key().as_ref(),
         params.previous_round_index.as_ref(),
         ],
-        bump = params.previous_auction_round_config_bump,
+        bump = params.previous_collection_auction_round_config_bump,
     )]
-    pub previous_auction_round_config: Box<Account<'info, AuctionRoundAccount>>,
+    pub previous_collection_auction_round_config: Box<Account<'info, CollectionAuctionRoundAccount>>,
 
     #[account(
         init,
         payer = fee_and_rent_payer,
-        space = AuctionRoundAccount::space(),
+        space = CollectionAuctionRoundAccount::space(),
         seeds = [
-        AUCTION_ROUND_ACCOUNT_PREFIX.as_ref(),
-        auction_config.key().as_ref(),
+        COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX.as_ref(),
+        collection_auction_config.key().as_ref(),
         params.next_round_index.as_ref(),
         ],
         bump,
     )]
-    pub next_auction_round_config: Box<Account<'info, AuctionRoundAccount>>,
+    pub next_collection_auction_round_config: Box<Account<'info, CollectionAuctionRoundAccount>>,
 
-    pub token_mint_account: Box<InterfaceAccount<'info, Mint>>,
+    pub collection_mint_account: Box<InterfaceAccount<'info, Mint>>,
 
     pub system_program: Program<'info, System>,
 
@@ -91,9 +91,9 @@ pub struct StartNextRoundInputAccounts<'info> {
     pub instructions_sysvar: AccountInfo<'info>,
 }
 
-pub fn handle_start_next_round<'info>(
-    ctx: Context<'_, '_, 'info, 'info, StartNextRoundInputAccounts<'info>>,
-    params: &StartNextRoundInputParams,
+pub fn handle_start_next_collection_round<'info>(
+    ctx: Context<'_, '_, 'info, 'info, StartNextCollectionRoundInputAccounts<'info>>,
+    params: &StartNextCollectionRoundInputParams,
 ) -> Result<()> {
     let timestamp = Clock::get().unwrap().unix_timestamp;
 
@@ -102,9 +102,9 @@ pub fn handle_start_next_round<'info>(
     let cream_pad_config: Account<CreamPadAccount> =
         Account::try_from(cream_pad_config_account_info)?;
 
-    let auction_config: &Box<Account<AuctionAccount>> = &ctx.accounts.auction_config;
-    let previous_auction_round_config: &Box<Account<AuctionRoundAccount>> =
-        &ctx.accounts.previous_auction_round_config;
+    let collection_auction_config: &Box<Account<CollectionAuctionAccount>> = &ctx.accounts.collection_auction_config;
+    let previous_collection_auction_round_config: &Box<Account<CollectionAuctionRoundAccount>> =
+        &ctx.accounts.previous_collection_auction_round_config;
 
     // Checks
     check_program_id(
@@ -133,7 +133,7 @@ pub fn handle_start_next_round<'info>(
     };
 
     check_round_starter(
-        auction_config.creator,
+        collection_auction_config.creator,
         cream_pad_config.back_authority,
         ctx.accounts.starter.key(),
     )?;
@@ -142,53 +142,53 @@ pub fn handle_start_next_round<'info>(
 
     let next_round_index: u16 = params.next_round_index.clone().parse().unwrap();
 
-    check_previous_round(auction_config.current_round, previous_round_index)?;
+    check_previous_round(collection_auction_config.current_round, previous_round_index)?;
 
     check_next_round(
-        auction_config.current_round.checked_add(1).unwrap(),
+        collection_auction_config.current_round.checked_add(1).unwrap(),
         next_round_index,
     )?;
 
-    check_is_previous_auction_round_ended(previous_auction_round_config.status.clone())?;
+    check_is_previous_auction_round_ended(previous_collection_auction_round_config.status.clone())?;
 
-    check_is_auction_ended_or_sold_out(auction_config.status.clone())?;
+    check_is_auction_ended_or_sold_out(collection_auction_config.status.clone())?;
 
     if params.next_have_buy_limit {
         check_value_is_zero(params.next_buy_limit as usize)?;
     };
 
     let current_price = calculate_price(
-        auction_config.p0,
-        auction_config.ptmax,
-        auction_config.tmax as u64,
-        auction_config.current_round as usize,
-        &auction_config.boost_history,
-        auction_config.decay_model.clone(),
-        auction_config.time_shift_max,
+        collection_auction_config.p0,
+        collection_auction_config.ptmax,
+        collection_auction_config.tmax as u64,
+        collection_auction_config.current_round as usize,
+        &collection_auction_config.boost_history,
+        collection_auction_config.decay_model.clone(),
+        collection_auction_config.time_shift_max,
     );
 
     // Set Values
-    let auction_config: &mut Box<Account<AuctionAccount>> = &mut ctx.accounts.auction_config;
-    auction_config.last_block_timestamp = timestamp;
-    auction_config.current_round = auction_config.current_round.checked_add(1).unwrap();
-    auction_config.current_price = current_price;
+    let collection_auction_config: &mut Box<Account<CollectionAuctionAccount>> = &mut ctx.accounts.collection_auction_config;
+    collection_auction_config.last_block_timestamp = timestamp;
+    collection_auction_config.current_round = collection_auction_config.current_round.checked_add(1).unwrap();
+    collection_auction_config.current_price = current_price;
 
-    let next_auction_round_config: &mut Box<Account<AuctionRoundAccount>> =
-        &mut ctx.accounts.next_auction_round_config;
-    next_auction_round_config.last_block_timestamp = timestamp;
-    next_auction_round_config.round_start_at = timestamp;
-    next_auction_round_config.round_end_at =
+    let next_collection_auction_round_config: &mut Box<Account<CollectionAuctionRoundAccount>> =
+        &mut ctx.accounts.next_collection_auction_round_config;
+    next_collection_auction_round_config.last_block_timestamp = timestamp;
+    next_collection_auction_round_config.round_start_at = timestamp;
+    next_collection_auction_round_config.round_end_at =
         timestamp.checked_add(params.next_round_duration).unwrap();
-    next_auction_round_config.round = auction_config.current_round;
-    next_auction_round_config.price = auction_config.current_price;
-    next_auction_round_config.boost = 0;
-    next_auction_round_config.have_buy_limit = params.next_have_buy_limit;
-    next_auction_round_config.buy_limit = params.next_buy_limit;
+    next_collection_auction_round_config.round = collection_auction_config.current_round;
+    next_collection_auction_round_config.price = collection_auction_config.current_price;
+    next_collection_auction_round_config.boost = 0;
+    next_collection_auction_round_config.have_buy_limit = params.next_have_buy_limit;
+    next_collection_auction_round_config.buy_limit = params.next_buy_limit;
 
     // Event
-    let event: StartRoundEvent = StartRoundEvent {
+    let event: StartCollectionRoundEvent = StartCollectionRoundEvent {
         timestamp,
-        mint: ctx.accounts.token_mint_account.key(),
+        collection_mint: ctx.accounts.collection_mint_account.key(),
         pad_name: params.pad_name.clone(),
         previous_round_index: params.previous_round_index.clone(),
         next_round_index: params.next_round_index.clone(),

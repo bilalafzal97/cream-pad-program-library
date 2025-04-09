@@ -89,4 +89,67 @@ pub mod cream_pad {
     ) -> Result<()> {
         handle_claim_distribution(ctx, &params)
     }
+
+    pub fn initialize_collection_pad<'info>(
+        ctx: Context<'_, '_, 'info, 'info, InitializeCollectionPadInputAccounts<'info>>,
+        params: InitializeCollectionPadInputParams,
+    ) -> Result<()> {
+        handle_initialize_collection_pad(ctx, &params)
+    }
+
+    pub fn update_collection_pad<'info>(
+        ctx: Context<'_, '_, 'info, 'info, UpdateCollectionPadInputAccounts<'info>>,
+        params: UpdateCollectionPadInputParams,
+    ) -> Result<()> {
+        handle_update_collection_pad(ctx, &params)
+    }
+
+    pub fn end_collection_round<'info>(
+        ctx: Context<'_, '_, 'info, 'info, EndCollectionRoundInputAccounts<'info>>,
+        params: EndCollectionRoundInputParams,
+    ) -> Result<()> {
+        handle_end_collection_round(ctx, &params)
+    }
+
+    pub fn start_next_collection_round<'info>(
+        ctx: Context<'_, '_, 'info, 'info, StartNextCollectionRoundInputAccounts<'info>>,
+        params: StartNextCollectionRoundInputParams,
+    ) -> Result<()> {
+        handle_start_next_collection_round(ctx, &params)
+    }
+
+    pub fn take_collection_update_authority<'info>(
+        ctx: Context<'_, '_, 'info, 'info, TakeCollectionUpdateAuthorityInputAccounts<'info>>,
+        params: TakeCollectionUpdateAuthorityInputParams,
+    ) -> Result<()> {
+        handle_take_collection_update_authority(ctx, &params)
+    }
+
+    pub fn give_collection_update_authority<'info>(
+        ctx: Context<'_, '_, 'info, 'info, GiveCollectionUpdateAuthorityInputAccounts<'info>>,
+        params: GiveCollectionUpdateAuthorityInputParams,
+    ) -> Result<()> {
+        handle_give_collection_update_authority(ctx, &params)
+    }
+
+    pub fn treasury_and_distribute<'info>(
+        ctx: Context<'_, '_, 'info, 'info, TreasuryAndDistributeInputAccounts<'info>>,
+        params: TreasuryAndDistributeInputParams,
+    ) -> Result<()> {
+        handle_treasury_and_distribute(ctx, &params)
+    }
+
+    pub fn buy_collection_asset<'info>(
+        ctx: Context<'_, '_, 'info, 'info, BuyCollectionAssetInputAccounts<'info>>,
+        params: BuyCollectionAssetParams,
+    ) -> Result<()> {
+        handle_buy_collection_asset(ctx, &params)
+    }
+
+    pub fn fill_bought_collection_asset<'info>(
+        ctx: Context<'_, '_, 'info, 'info, FillBoughtCollectionAssetInputAccounts<'info>>,
+        params: FillBoughtCollectionAssetInputParams,
+    ) -> Result<()> {
+        handle_fill_bought_collection_asset(ctx, &params)
+    }
 }

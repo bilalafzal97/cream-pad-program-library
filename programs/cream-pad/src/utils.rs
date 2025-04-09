@@ -1,7 +1,10 @@
 use crate::error::CreamPadError;
-use crate::states::{AuctionRoundStatus, AuctionStatus, DecayModelType, ProgramStatus};
+use crate::states::{
+    AssetCreator, AuctionRoundStatus, AuctionStatus, DecayModelType, ProgramStatus,
+};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
+use std::collections::HashSet;
 
 pub const BASE_POINT: u16 = 10000;
 
@@ -264,7 +267,7 @@ pub fn check_is_auction_is_locked(status: AuctionStatus) -> Result<()> {
 
 pub fn check_can_unlock(unlock_at: i64, current_at: i64) -> Result<()> {
     if unlock_at > current_at {
-        return Err(CreamPadError::AuctionNotAtLock.into());
+        return Err(CreamPadError::AuctionHaveTimeToUnlock.into());
     }
 
     Ok(())
@@ -275,6 +278,85 @@ pub fn check_is_auction_is_distribution(status: AuctionStatus) -> Result<()> {
         && !status.eq(&AuctionStatus::UnsoldUnlocked)
     {
         return Err(CreamPadError::AuctionNotAtDistribution.into());
+    }
+
+    Ok(())
+}
+
+pub fn check_round_buy_limit(current_amount: u64, buy_limit: u64) -> Result<()> {
+    if current_amount > buy_limit {
+        return Err(CreamPadError::BuyLimitExceeded.into());
+    }
+
+    Ok(())
+}
+
+pub fn check_unique_creators(creators: &Vec<AssetCreator>) -> Result<()> {
+    let mut seen_addresses = HashSet::new();
+
+    for creator in creators {
+        if !seen_addresses.insert(creator.address) {
+            return Err(CreamPadError::DuplicateCreatorAddress.into());
+        }
+    }
+
+    Ok(())
+}
+
+pub fn check_creators_share(share: u8) -> Result<()> {
+    if share != 100 {
+        return Err(CreamPadError::InvalidCreatorShare.into());
+    };
+
+    Ok(())
+}
+
+pub fn check_seller_fee_basis_points(seller_fee_basis_points: u16) -> Result<()> {
+    if seller_fee_basis_points > BASE_POINT {
+        return Err(CreamPadError::InvalidSellerFeeBasisPoints.into());
+    };
+
+    Ok(())
+}
+
+pub fn check_supply_evenly_divisible(supply: u64, t_max: u64) -> Result<()> {
+    if supply % t_max != 0 {
+        return Err(CreamPadError::SupplyNotEvenlyDivisible.into());
+    };
+
+    Ok(())
+}
+
+pub fn check_is_exceeding_end_index(current_index: u64, end_index: u64) -> Result<()> {
+    if current_index > end_index {
+        return Err(CreamPadError::ExceedingEndIndex.into());
+    };
+
+    Ok(())
+}
+
+pub fn check_is_treasury_full(current: u64, total: u64) -> Result<()> {
+    if current > total {
+        return Err(CreamPadError::TreasuryFull.into());
+    };
+
+    Ok(())
+}
+
+pub fn check_is_receipt_full(current: u64, total: u64) -> Result<()> {
+    if current > total {
+        return Err(CreamPadError::ReceiptFull.into());
+    };
+
+    Ok(())
+}
+
+pub fn check_treasury(
+    treasury_from_account: Pubkey,
+    treasury_from_input_accounts: Pubkey,
+) -> Result<()> {
+    if treasury_from_account != treasury_from_input_accounts {
+        return Err(CreamPadError::InvalidTreasury.into());
     }
 
     Ok(())

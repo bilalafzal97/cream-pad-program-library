@@ -1,12 +1,13 @@
 use anchor_lang::prelude::*;
+use crate::states::AssetCreator;
 
 #[event]
-pub struct InitializePadEvent {
+pub struct InitializeCollectionPadEvent {
     pub timestamp: i64,
 
     pub creator: Pubkey,
 
-    pub mint: Pubkey,
+    pub collection_mint: Pubkey,
 
     pub pad_name: String,
 
@@ -29,4 +30,12 @@ pub struct InitializePadEvent {
     pub have_buy_limit: bool,
 
     pub buy_limit: u64,
+
+    pub starting_index: u64,
+
+    pub ending_index: u64,
+
+    pub seller_fee_basis_points: u16,
+
+    pub asset_creators: Vec<AssetCreator>,
 }

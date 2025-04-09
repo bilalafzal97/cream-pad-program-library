@@ -1,10 +1,10 @@
 use anchor_lang::prelude::*;
 
 #[event]
-pub struct StartRoundEvent {
+pub struct StartCollectionRoundEvent {
     pub timestamp: i64,
 
-    pub mint: Pubkey,
+    pub collection_mint: Pubkey,
 
     pub pad_name: String,
 

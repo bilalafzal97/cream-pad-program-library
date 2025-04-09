@@ -25,6 +25,10 @@ pub struct InitializeInputParams {
     pub lock_base_point: u16,
 
     pub lock_duration: i64,
+
+    pub minting_fee: u64,
+
+    pub treasury: Pubkey
 }
 
 #[derive(Accounts)]
@@ -63,7 +67,8 @@ pub fn handle_initialize(
     check_value_is_zero(params.distribution_base_point as usize)?;
     check_value_is_zero(params.lock_base_point as usize)?;
     check_value_is_zero(params.lock_duration as usize)?;
-    check_fee_base_point(params.fee_base_point)?;
+    check_value_is_zero(params.minting_fee as usize)?;
+    check_fee_base_point(params.fee_base_point)?;;
     check_distribution_and_lock_base_point(
         params
             .distribution_base_point
@@ -85,6 +90,8 @@ pub fn handle_initialize(
     cream_pad_config.distribution_base_point = params.distribution_base_point;
     cream_pad_config.lock_base_point = params.lock_base_point;
     cream_pad_config.lock_duration = params.lock_duration;
+    cream_pad_config.minting_fee = params.minting_fee;
+    cream_pad_config.treasury = params.treasury;
 
     Ok(())
 }

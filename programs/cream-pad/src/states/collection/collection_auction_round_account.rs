@@ -1,10 +1,10 @@
 use crate::states::AuctionRoundStatus;
 use anchor_lang::prelude::*;
 
-pub const AUCTION_ROUND_ACCOUNT_PREFIX: &str = "ARAP";
+pub const COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX: &str = "CARAP";
 
 #[account]
-pub struct AuctionRoundAccount {
+pub struct CollectionAuctionRoundAccount {
     /// timestamp when account updated
     pub last_block_timestamp: i64,
 
@@ -37,7 +37,7 @@ pub struct AuctionRoundAccount {
     pub buy_limit: u64,
 }
 
-impl AuctionRoundAccount {
+impl CollectionAuctionRoundAccount {
     pub fn space() -> usize {
         8 // default
             + 8 // last_block_timestamp

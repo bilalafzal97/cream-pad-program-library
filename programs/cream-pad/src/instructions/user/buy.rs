@@ -1,18 +1,28 @@
-use crate::states::{AuctionAccount, AuctionRoundAccount, AuctionRoundStatus, AuctionStatus, CreamPadAccount, UserAuctionAccount, UserAuctionBuyReceiptAccount, UserAuctionRoundAccount, UserAuctionStatus, AUCTION_ACCOUNT_PREFIX, AUCTION_ROUND_ACCOUNT_PREFIX, USER_AUCTION_ACCOUNT_PREFIX, USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX, USER_AUCTION_ROUND_ACCOUNT_PREFIX};
-use crate::utils::{adjust_amount, calculate_boost, calculate_total_price, check_back_authority, check_buy_index, check_current_round, check_is_auction_ended_or_sold_out, check_is_auction_round_ended, check_is_auction_round_time_run_out, check_is_program_working, check_payment_fee_receiver, check_payment_mint_account, check_payment_receiver, check_remaining_supply, check_signer_exist, check_token_account_authority, try_get_remaining_account_info, BASE_POINT};
+use crate::states::{
+    AuctionAccount, AuctionRoundAccount, AuctionRoundStatus, AuctionStatus, CreamPadAccount,
+    UserAuctionAccount, UserAuctionBuyReceiptAccount, UserAuctionRoundAccount, UserAuctionStatus,
+    AUCTION_ACCOUNT_PREFIX, AUCTION_ROUND_ACCOUNT_PREFIX, USER_AUCTION_ACCOUNT_PREFIX,
+    USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX, USER_AUCTION_ROUND_ACCOUNT_PREFIX,
+};
+use crate::utils::{
+    adjust_amount, calculate_boost, calculate_total_price, check_back_authority, check_buy_index,
+    check_current_round, check_is_auction_ended_or_sold_out, check_is_auction_round_ended,
+    check_is_auction_round_time_run_out, check_is_program_working, check_payment_fee_receiver,
+    check_payment_mint_account, check_payment_receiver, check_remaining_supply,
+    check_round_buy_limit, check_signer_exist, check_token_account_authority,
+    try_get_remaining_account_info, BASE_POINT,
+};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_spl::associated_token::{
     create as associated_token_create, Create as AssociatedTokenCreate,
 };
-use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TransferChecked,
-};
+use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
 
+use crate::events::BuyEvent;
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
 };
-use crate::events::BuyEvent;
 
 #[repr(C)]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -152,9 +162,23 @@ pub fn handle_buy<'info>(
 
     let user_auction_config: &Box<Account<UserAuctionAccount>> = &ctx.accounts.user_auction_config;
 
+    let user_auction_round_config: &Box<Account<UserAuctionRoundAccount>> =
+        &ctx.accounts.user_auction_round_config;
+
+    check_round_buy_limit(
+        user_auction_round_config
+            .total_buy_amount
+            .checked_add(params.amount)
+            .unwrap(),
+        auction_round_config.buy_limit,
+    )?;
+
     let buy_index: u64 = params.buy_index.clone().parse().unwrap();
 
-    check_buy_index(buy_index, user_auction_config.total_buy_count.checked_add(1).unwrap())?;
+    check_buy_index(
+        buy_index,
+        user_auction_config.total_buy_count.checked_add(1).unwrap(),
+    )?;
 
     let token_program_account_info = try_get_remaining_account_info(ctx.remaining_accounts, 2)?;
     let payment_token_program_account_info =
@@ -210,10 +234,6 @@ pub fn handle_buy<'info>(
         fee_receiver_account_info.key(),
     )?;
 
-    // Get decimals dynamically from mint accounts
-    // let amount_decimals = ctx.accounts.token_mint_account.decimals;
-    // let price_decimals = ctx.accounts.payment_token_mint_account.decimals;
-
     // Convert amount for transfer
     let adjusted_amount = adjust_amount(params.amount, 9, ctx.accounts.token_mint_account.decimals);
 
@@ -221,7 +241,7 @@ pub fn handle_buy<'info>(
     let total_price = calculate_total_price(
         params.amount,
         auction_config.current_price,
-        9,              // From default 9 decimal
+        9,                                                // From default 9 decimal
         ctx.accounts.payment_token_mint_account.decimals, // To payment token decimals
         ctx.accounts.payment_token_mint_account.decimals, // Output should match payment token decimals
     );
@@ -364,18 +384,11 @@ pub fn handle_buy<'info>(
     };
 
     // Check user token account authority
-    let user_token_account_unpacked: TokenAccount =
-        TokenAccount::try_deserialize_unchecked(
-            &mut &*user_token_account_account_info
-                .data
-                .borrow()
-                .as_ref(),
-        )?;
-
-    check_token_account_authority(
-        user_token_account_unpacked.owner,
-        ctx.accounts.user.key(),
+    let user_token_account_unpacked: TokenAccount = TokenAccount::try_deserialize_unchecked(
+        &mut &*user_token_account_account_info.data.borrow().as_ref(),
     )?;
+
+    check_token_account_authority(user_token_account_unpacked.owner, ctx.accounts.user.key())?;
 
     // transfer token to user
     let auction_config_bump_bytes = params.auction_config_bump.to_le_bytes();
@@ -407,27 +420,57 @@ pub fn handle_buy<'info>(
         ctx.accounts.token_mint_account.decimals,
     )?;
 
-    let adjusted_back_total_price = adjust_amount(total_price, ctx.accounts.payment_token_mint_account.decimals, 9);
-    let adjusted_back_fee_price = adjust_amount(fee_price, ctx.accounts.payment_token_mint_account.decimals, 9);
+    let adjusted_back_total_price = adjust_amount(
+        total_price,
+        ctx.accounts.payment_token_mint_account.decimals,
+        9,
+    );
+    let adjusted_back_fee_price = adjust_amount(
+        fee_price,
+        ctx.accounts.payment_token_mint_account.decimals,
+        9,
+    );
 
     // Set Values
     let auction_config: &mut Box<Account<AuctionAccount>> = &mut ctx.accounts.auction_config;
     auction_config.last_block_timestamp = timestamp;
-    auction_config.total_user_buy_count = auction_config.total_user_buy_count.checked_add(1).unwrap();
-    auction_config.total_supply_sold = auction_config.total_supply_sold.checked_add(params.amount).unwrap();
-    auction_config.total_payment = auction_config.total_payment.checked_add(adjusted_back_total_price).unwrap();
-    auction_config.total_fee = auction_config.total_fee.checked_add(adjusted_back_fee_price).unwrap();
+    auction_config.total_user_buy_count =
+        auction_config.total_user_buy_count.checked_add(1).unwrap();
+    auction_config.total_supply_sold = auction_config
+        .total_supply_sold
+        .checked_add(params.amount)
+        .unwrap();
+    auction_config.total_payment = auction_config
+        .total_payment
+        .checked_add(adjusted_back_total_price)
+        .unwrap();
+    auction_config.total_fee = auction_config
+        .total_fee
+        .checked_add(adjusted_back_fee_price)
+        .unwrap();
 
-    let auction_round_config: &mut Box<Account<AuctionRoundAccount>> = &mut ctx.accounts.auction_round_config;
+    let auction_round_config: &mut Box<Account<AuctionRoundAccount>> =
+        &mut ctx.accounts.auction_round_config;
     auction_round_config.last_block_timestamp = timestamp;
-    auction_round_config.total_user_buy_count = auction_round_config.total_user_buy_count.checked_add(1).unwrap();
-    auction_round_config.total_supply_sold = auction_round_config.total_supply_sold.checked_add(params.amount).unwrap();
-    auction_round_config.total_payment = auction_round_config.total_payment.checked_add(adjusted_back_total_price).unwrap();
-    auction_round_config.total_fee = auction_round_config.total_fee.checked_add(adjusted_back_fee_price).unwrap();
+    auction_round_config.total_user_buy_count = auction_round_config
+        .total_user_buy_count
+        .checked_add(1)
+        .unwrap();
+    auction_round_config.total_supply_sold = auction_round_config
+        .total_supply_sold
+        .checked_add(params.amount)
+        .unwrap();
+    auction_round_config.total_payment = auction_round_config
+        .total_payment
+        .checked_add(adjusted_back_total_price)
+        .unwrap();
+    auction_round_config.total_fee = auction_round_config
+        .total_fee
+        .checked_add(adjusted_back_fee_price)
+        .unwrap();
 
     // check is over sold
     if auction_config.total_supply_sold >= auction_config.total_supply {
-
         let boost: u64 = calculate_boost(
             auction_round_config.total_supply_sold,
             auction_config
@@ -446,7 +489,8 @@ pub fn handle_buy<'info>(
         auction_round_config.boost = boost;
     };
 
-    let user_auction_config: &mut Box<Account<UserAuctionAccount>> = &mut ctx.accounts.user_auction_config;
+    let user_auction_config: &mut Box<Account<UserAuctionAccount>> =
+        &mut ctx.accounts.user_auction_config;
     if user_auction_config.last_block_timestamp == 0 {
         user_auction_config.user = ctx.accounts.user.key();
         user_auction_config.status = UserAuctionStatus::None;
@@ -454,28 +498,48 @@ pub fn handle_buy<'info>(
     };
 
     user_auction_config.last_block_timestamp = timestamp;
-    user_auction_config.total_buy_count = user_auction_config.total_buy_count.checked_add(1).unwrap();
-    user_auction_config.total_buy_amount = user_auction_config.total_buy_amount.checked_add(params.amount).unwrap();
-    user_auction_config.total_payment = user_auction_config.total_payment.checked_add(adjusted_back_total_price).unwrap();
+    user_auction_config.total_buy_count =
+        user_auction_config.total_buy_count.checked_add(1).unwrap();
+    user_auction_config.total_buy_amount = user_auction_config
+        .total_buy_amount
+        .checked_add(params.amount)
+        .unwrap();
+    user_auction_config.total_payment = user_auction_config
+        .total_payment
+        .checked_add(adjusted_back_total_price)
+        .unwrap();
 
-    let user_auction_round_config: &mut Box<Account<UserAuctionRoundAccount>> = &mut ctx.accounts.user_auction_round_config;
+    let user_auction_round_config: &mut Box<Account<UserAuctionRoundAccount>> =
+        &mut ctx.accounts.user_auction_round_config;
     if user_auction_round_config.last_block_timestamp == 0 {
         user_auction_round_config.round = current_round_index;
-        auction_round_config.total_user_count = auction_round_config.total_user_count.checked_add(1).unwrap();
+        auction_round_config.total_user_count = auction_round_config
+            .total_user_count
+            .checked_add(1)
+            .unwrap();
     };
 
     user_auction_round_config.last_block_timestamp = timestamp;
-    user_auction_round_config.total_buy_count = user_auction_round_config.total_buy_count.checked_add(1).unwrap();
-    user_auction_round_config.total_buy_amount = user_auction_round_config.total_buy_amount.checked_add(params.amount).unwrap();
-    user_auction_round_config.total_payment = user_auction_round_config.total_payment.checked_add(adjusted_back_total_price).unwrap();
+    user_auction_round_config.total_buy_count = user_auction_round_config
+        .total_buy_count
+        .checked_add(1)
+        .unwrap();
+    user_auction_round_config.total_buy_amount = user_auction_round_config
+        .total_buy_amount
+        .checked_add(params.amount)
+        .unwrap();
+    user_auction_round_config.total_payment = user_auction_round_config
+        .total_payment
+        .checked_add(adjusted_back_total_price)
+        .unwrap();
 
-    let user_auction_buy_receipt_config: &mut Box<Account<UserAuctionBuyReceiptAccount>> = &mut ctx.accounts.user_auction_buy_receipt_config;
+    let user_auction_buy_receipt_config: &mut Box<Account<UserAuctionBuyReceiptAccount>> =
+        &mut ctx.accounts.user_auction_buy_receipt_config;
     user_auction_buy_receipt_config.last_block_timestamp = timestamp;
     user_auction_buy_receipt_config.buy_amount = params.amount;
     user_auction_buy_receipt_config.payment = adjusted_back_total_price;
     user_auction_buy_receipt_config.round = current_round_index;
     user_auction_buy_receipt_config.index = buy_index;
-
 
     // Event
     let event: BuyEvent = BuyEvent {

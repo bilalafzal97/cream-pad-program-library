@@ -7,7 +7,9 @@ import {
     SYSVAR_RENT_PUBKEY,
     SystemProgram,
     SYSVAR_INSTRUCTIONS_PUBKEY,
-    Connection
+    Connection,
+    Transaction,
+    TransactionMessage
 } from "@solana/web3.js";
 import {
     ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -17,241 +19,70 @@ import {
     mintToChecked,
     TOKEN_PROGRAM_ID,
     TOKEN_2022_PROGRAM_ID,
-    getMint
+    createInitializeMintInstruction,
+    createAssociatedTokenAccountInstruction,
+    createMintToCheckedInstruction,
+    getMint, getMinimumBalanceForRentExemptMint, MINT_SIZE
 } from '@solana/spl-token';
+import {
+    PROGRAM_ID as MPL_TOKEN_METADATA_PROGRAM_ID, DataV2, Metadata, createCreateMetadataAccountV3Instruction,
+    createCreateMasterEditionV3Instruction, createVerifyCollectionInstruction
+} from "@metaplex-foundation/mpl-token-metadata";
 import {assert} from "chai";
 import {CreamPad} from "../target/types/cream_pad";
+import {
+    BuyEventName, ClaimDistributionEventName,
+    EndRoundEventName, handleBuyEvent, handleClaimDistributionEvent,
+    handleEndRoundEvent,
+    handleInitializePadEvent,
+    handleLockAndDistributionEvent,
+    handleStartRoundEvent,
+    handleUnlockUnsoldSupplyEvent,
+    handleUpdatePadEvent,
+    InitializePadEventName,
+    LockAndDistributionEventName,
+    StartRoundEventName,
+    UnlockUnsoldSupplyEventName,
+    UpdatePadEventName
+} from "./cream-pad-event-types";
+import {
+    AuctionRoundStatus, AuctionRoundStatusType,
+    AuctionStatus, AuctionStatusType,
+    DecayModel, DecayModelType,
+    ProgramStatus,
+    ProgramStatusType,
+    UserAuctionStatus, UserAuctionStatusType
+} from "./cream-pad-enum";
+import {tokensToLamports} from "./cream-pad-math";
+import {
+    AUCTION_ACCOUNT_PREFIX,
+    AUCTION_ROUND_ACCOUNT_PREFIX,
+    AUCTION_VAULT_PREFIX, COLLECTION_AUCTION_ACCOUNT_PREFIX, COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX,
+    CREAM_PAD_ACCOUNT_PREFIX,
+    getAuctionAccountPdaAndBump,
+    getAuctionRoundAccountPdaAndBump,
+    getAuctionVaultAccountPdaAndBump, getCollectionAuctionAccountPdaAndBump, getCollectionAuctionRoundAccountPdaAndBump,
+    getCreamPadAccountPdaAndBump, getMasterEditionPda, getMetadataPda,
+    getUserAuctionAccountPdaAndBump,
+    getUserAuctionBuyReceiptAccountPdaAndBump,
+    getUserAuctionRoundAccountPdaAndBump,
+    getUserAuctionUnsoldDistributionAccountPdaAndBump,
+    USER_AUCTION_ACCOUNT_PREFIX,
+    USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX,
+    USER_AUCTION_ROUND_ACCOUNT_PREFIX,
+    USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX
+} from "./cream-pad-pda";
+import {
+    assertAuctionAccount,
+    assertAuctionRoundAccount, assertCollectionAuctionAccount, assertCollectionAuctionRoundAccount,
+    assertCreamPadAccount,
+    assertTokenBalance,
+    assertUserAuctionAccount,
+    assertUserAuctionBuyReceiptAccount,
+    assertUserAuctionRoundAccount,
+    assertUserAuctionUnsoldDistributionAccount
+} from "./cream-pad-assert";
 
-/// EVENT
-
-const InitializePadEventName = "InitializePadEvent";
-
-interface InitializePadEvent {
-    timestamp: BN,
-
-    creator: PublicKey,
-
-    mint: PublicKey,
-
-    padName: string,
-
-    paymentReceiver: PublicKey,
-
-    roundDuration: BN,
-
-    p0: BN,
-
-    ptmax: BN,
-
-    tmax: number,
-
-    omega: BN,
-
-    alpha: BN,
-
-    timeShiftMax: BN,
-}
-
-const UpdatePadEventName = "UpdatePadEvent";
-
-interface UpdatePadEvent {
-    timestamp: BN,
-
-    mint: PublicKey,
-
-    padName: string,
-
-    paymentReceiver: PublicKey,
-}
-
-const EndRoundEventName = "EndRoundEvent";
-
-interface EndRoundEvent {
-    timestamp: BN,
-
-    mint: PublicKey,
-
-    padName: string,
-
-    roundIndex: string,
-
-    boost: BN,
-}
-
-const StartRoundEventName = "StartRoundEvent";
-
-interface StartRoundEvent {
-    timestamp: BN,
-
-    mint: PublicKey,
-
-    padName: string,
-
-    previousRoundIndex: string,
-
-    nextRoundIndex: string,
-
-    nextRoundDuration: BN,
-
-    currentPrice: BN,
-}
-
-const LockAndDistributionEventName = "LockAndDistributionEvent";
-
-interface LockAndDistributionEvent {
-    timestamp: BN,
-
-    mint: PublicKey,
-
-    padName: string,
-
-    totalUnsoldSupplyLocked: BN,
-
-    unsoldSupplyCanUnlockAt: BN,
-
-    totalUnsoldSupplyDistribution: BN,
-}
-
-
-const UnlockUnsoldSupplyEventName = "UnlockUnsoldSupplyEvent";
-
-interface UnlockUnsoldSupplyEvent {
-    timestamp: BN,
-
-    mint: PublicKey,
-
-    padName: string,
-}
-
-const BuyEventName = "BuyEvent";
-
-interface BuyEvent {
-    timestamp: BN,
-
-    mint: PublicKey,
-
-    padName: string,
-
-    user: PublicKey,
-
-    amount: BN,
-
-    fee: BN,
-
-    price: BN,
-
-    currentRound: string,
-
-    userBuyIndex: string,
-
-    totalPrice: BN,
-
-    isEndedAndSoldOut: boolean,
-}
-
-const ClaimDistributionEventName = "ClaimDistributionEvent";
-
-interface ClaimDistributionEvent {
-    timestamp: BN,
-
-    mint: PublicKey,
-
-    padName: string,
-
-    user: PublicKey,
-
-    amount: BN,
-}
-
-const handleInitializePadEvent = (ev: InitializePadEvent) =>
-    console.log(`${InitializePadEventName} ==> `, ev);
-
-const handleUpdatePadEvent = (ev: UpdatePadEvent) =>
-    console.log(`${UpdatePadEventName} ==> `, ev);
-
-const handleEndRoundEvent = (ev: EndRoundEvent) =>
-    console.log(`${EndRoundEventName} ==> `, ev);
-
-
-const handleStartRoundEvent = (ev: StartRoundEvent) =>
-    console.log(`${StartRoundEventName} ==> `, ev);
-
-
-const handleLockAndDistributionEvent = (ev: LockAndDistributionEvent) =>
-    console.log(`${LockAndDistributionEventName} ==> `, ev);
-
-
-const handleUnlockUnsoldSupplyEvent = (ev: UnlockUnsoldSupplyEvent) =>
-    console.log(`${UnlockUnsoldSupplyEventName} ==> `, ev);
-
-const handleBuyEvent = (ev: BuyEvent) =>
-    console.log(`${BuyEventName} ==> `, ev);
-
-
-const handleClaimDistributionEvent = (ev: ClaimDistributionEvent) =>
-    console.log(`${ClaimDistributionEventName} ==> `, ev);
-
-/// ENUMS
-type ProgramStatusType =
-    | { normal: {} }
-    | { halted: {} };
-
-class ProgramStatus {
-    static readonly Normal: ProgramStatusType = {normal: {}};
-    static readonly Halted: ProgramStatusType = {halted: {}};
-}
-
-type AuctionStatusType =
-    | { started: {} }
-    | { ended: {} }
-    | { soldOut: {} }
-    | { unsoldLockedAndDistributionOpen: {} }
-    | { unsoldUnlocked: {} };
-
-class AuctionStatus {
-    static readonly Started: AuctionStatusType = {started: {}};
-    static readonly Ended: AuctionStatusType = {ended: {}};
-    static readonly SoldOut: AuctionStatusType = {soldOut: {}};
-    static readonly UnsoldLockedAndDistributionOpen: AuctionStatusType = {unsoldLockedAndDistributionOpen: {}};
-    static readonly UnsoldUnlocked: AuctionStatusType = {unsoldUnlocked: {}};
-}
-
-type AuctionRoundStatusType =
-    | { started: {} }
-    | { ended: {} };
-
-class AuctionRoundStatus {
-    static readonly Started: AuctionRoundStatusType = {started: {}};
-    static readonly Ended: AuctionRoundStatusType = {ended: {}};
-}
-
-type DecayModelType =
-    | { linear: {} }
-    | { exponential: {} };
-
-class DecayModel {
-    static readonly Linear: DecayModelType = {linear: {}};
-    static readonly Exponential: DecayModelType = {exponential: {}};
-}
-
-type UserAuctionStatusType = { none: {} };
-
-class UserAuctionStatus {
-    static readonly None: UserAuctionStatusType = {none: {}};
-}
-
-
-/// Prefix
-const CREAM_PAD_ACCOUNT_PREFIX: string = "CPAP";
-
-const AUCTION_ACCOUNT_PREFIX: string = "AAP";
-const AUCTION_VAULT_PREFIX: string = "AVP";
-const AUCTION_ROUND_ACCOUNT_PREFIX: string = "ARAP";
-
-const USER_AUCTION_ACCOUNT_PREFIX: string = "UAAP";
-const USER_AUCTION_ROUND_ACCOUNT_PREFIX: string = "UARAP";
-const USER_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX: string = "UABRAP";
-const USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX: string = "UAUDAP";
 
 // Wallet Accounts
 const mainSigningAuthorityPubKey: PublicKey = anchor.AnchorProvider.env().wallet.publicKey;
@@ -264,17 +95,33 @@ const feeReceiverKeypair: Keypair = Keypair.generate();
 const paymentReceiverKeypair: Keypair = Keypair.generate();
 const userAKeypair: Keypair = Keypair.generate();
 const userBKeypair: Keypair = Keypair.generate();
+const userCKeypair: Keypair = Keypair.generate();
+const collectionUpdateAuthorityKeypair: Keypair = Keypair.generate();
 
 const sellingTokenDecimal = 8;
 const paymentTokenDecimal = 6;
 
 let sellingTokenMintAccount: PublicKey;
 let paymentTokenMintAccount: PublicKey;
+let collectionMintAccount: PublicKey;
 
+const collectionTokenProgramAccount: PublicKey = TOKEN_PROGRAM_ID;
 const sellingTokenProgramAccount: PublicKey = TOKEN_PROGRAM_ID;
 const paymentTokenProgramAccount: PublicKey = TOKEN_2022_PROGRAM_ID;
 
-const padName = "one";
+const padName = "token";
+const collectionPadName = "collection";
+
+const collectionName: string = "Cream Pad Asset Collection";
+const collectionSymbol: string = "CPAC";
+const collectionUrl: string = "https://creampad.com/my-collection.json";
+
+const assetName: string = "Cream Pad Asset #";
+const assetSymbol: string = "CPA";
+const assetUrl: string = "https://creampad.com/my-asset/";
+const assetUrlSuffix: string = ".json";
+
+const mintingFee: number = tokensToLamports(0.01965156, 9);
 
 describe("cream-pad", () => {
 
@@ -493,8 +340,206 @@ describe("cream-pad", () => {
 
     });
 
-    it("initialize program config", async () => {
+    it("create Collection", async () => {
+        const collectionMintKeypair = Keypair.generate();
+        collectionMintAccount = collectionMintKeypair.publicKey;
 
+        const collectionMetadataPda = getMetadataPda(MPL_TOKEN_METADATA_PROGRAM_ID, collectionMintAccount);
+        const collectionMasterEditionPda = getMasterEditionPda(MPL_TOKEN_METADATA_PROGRAM_ID, collectionMintAccount);
+
+        const ata = await getAssociatedTokenAddress(collectionMintAccount, collectionUpdateAuthorityKeypair.publicKey, true, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+
+        const lamports = await getMinimumBalanceForRentExemptMint(connection);
+
+        const data: DataV2 = {
+            name: collectionName,
+            symbol: collectionSymbol,
+            uri: collectionUrl,
+            sellerFeeBasisPoints: 0,
+            creators: null,
+            collection: null,
+            uses: null,
+        };
+
+        const tx = new Transaction();
+
+        // 1. Create Mint Account in solana
+        tx.add(
+            SystemProgram.createAccount({
+                fromPubkey: feeAndRentPayerKeypair.publicKey,
+                newAccountPubkey: collectionMintAccount,
+                lamports,
+                space: MINT_SIZE,
+                programId: TOKEN_PROGRAM_ID,
+            }),
+        );
+
+        // 2. Create Mint Account
+        tx.add(
+            createInitializeMintInstruction(collectionMintAccount, 0, collectionUpdateAuthorityKeypair.publicKey, collectionUpdateAuthorityKeypair.publicKey, TOKEN_PROGRAM_ID));
+
+        // 3. Create ATA
+
+        tx.add(createAssociatedTokenAccountInstruction(feeAndRentPayerKeypair.publicKey, ata, collectionUpdateAuthorityKeypair.publicKey, collectionMintAccount, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID));
+
+        // 4. Mint token to ATA
+        tx.add(createMintToCheckedInstruction(collectionMintAccount, ata, collectionUpdateAuthorityKeypair.publicKey, 1, 0, undefined, TOKEN_PROGRAM_ID));
+
+
+        // 5. Create Metadata
+        tx.add(
+            createCreateMetadataAccountV3Instruction({
+                metadata: collectionMetadataPda,
+                mint: collectionMintAccount,
+                mintAuthority: collectionUpdateAuthorityKeypair.publicKey,
+                payer: feeAndRentPayerKeypair.publicKey,
+                updateAuthority: collectionUpdateAuthorityKeypair.publicKey,
+                systemProgram: SystemProgram.programId,
+                rent: SYSVAR_RENT_PUBKEY
+            }, {
+                createMetadataAccountArgsV3: {
+                    data: data,
+                    isMutable: true,
+                    collectionDetails: null
+                }
+            })
+        );
+
+        // 6. Create Master Edition
+        tx.add(
+            createCreateMasterEditionV3Instruction({
+                edition: collectionMasterEditionPda,
+                mint: collectionMintAccount,
+                updateAuthority: collectionUpdateAuthorityKeypair.publicKey,
+                mintAuthority: collectionUpdateAuthorityKeypair.publicKey,
+                payer: feeAndRentPayerKeypair.publicKey,
+                metadata: collectionMetadataPda,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+                rent: SYSVAR_RENT_PUBKEY
+            }, {
+                createMasterEditionArgs: {
+                    maxSupply: 0,
+                },
+            })
+        );
+
+        const txHash = await connection.sendTransaction(tx, [feeAndRentPayerKeypair, collectionUpdateAuthorityKeypair, collectionMintKeypair]);
+
+        console.log("Your transaction signature", txHash);
+
+        await delay(delayTimeCount);
+    });
+
+    it("create Asset", async () => {
+        const assetMintKeypair = Keypair.generate();
+
+        const collectionMetadataPda = getMetadataPda(MPL_TOKEN_METADATA_PROGRAM_ID, collectionMintAccount);
+        const collectionMasterEditionPda = getMasterEditionPda(MPL_TOKEN_METADATA_PROGRAM_ID, collectionMintAccount);
+
+        const assetMetadataPda = getMetadataPda(MPL_TOKEN_METADATA_PROGRAM_ID, assetMintKeypair.publicKey);
+        const assetMasterEditionPda = getMasterEditionPda(MPL_TOKEN_METADATA_PROGRAM_ID, assetMintKeypair.publicKey);
+
+        const ata = await getAssociatedTokenAddress(assetMintKeypair.publicKey, userCKeypair.publicKey, true, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+
+        const lamports = await getMinimumBalanceForRentExemptMint(connection);
+
+        const data: DataV2 = {
+            name: assetName + "1",
+            symbol: assetSymbol,
+            uri: assetUrl + "1" + assetUrlSuffix,
+            sellerFeeBasisPoints: 0,
+            creators: null,
+            collection: {
+                verified: false,
+                key: collectionMintAccount
+            },
+            uses: null,
+        };
+
+        const tx = new Transaction();
+
+        // 1. Create Mint Account in solana
+        tx.add(
+            SystemProgram.createAccount({
+                fromPubkey: feeAndRentPayerKeypair.publicKey,
+                newAccountPubkey: assetMintKeypair.publicKey,
+                lamports,
+                space: MINT_SIZE,
+                programId: TOKEN_PROGRAM_ID,
+            }),
+        );
+
+        // 2. Create Mint Account
+        tx.add(
+            createInitializeMintInstruction(assetMintKeypair.publicKey, 0, collectionUpdateAuthorityKeypair.publicKey, collectionUpdateAuthorityKeypair.publicKey, TOKEN_PROGRAM_ID));
+
+        // 3. Create ATA
+
+        tx.add(createAssociatedTokenAccountInstruction(feeAndRentPayerKeypair.publicKey, ata, userCKeypair.publicKey, assetMintKeypair.publicKey, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID));
+
+        // 4. Mint token to ATA
+        tx.add(createMintToCheckedInstruction(assetMintKeypair.publicKey, ata, collectionUpdateAuthorityKeypair.publicKey, 1, 0, undefined, TOKEN_PROGRAM_ID));
+
+
+        // 5. Create Metadata
+        tx.add(
+            createCreateMetadataAccountV3Instruction({
+                metadata: assetMetadataPda,
+                mint: assetMintKeypair.publicKey,
+                mintAuthority: collectionUpdateAuthorityKeypair.publicKey,
+                payer: feeAndRentPayerKeypair.publicKey,
+                updateAuthority: collectionUpdateAuthorityKeypair.publicKey,
+                systemProgram: SystemProgram.programId,
+                rent: SYSVAR_RENT_PUBKEY
+            }, {
+                createMetadataAccountArgsV3: {
+                    data: data,
+                    isMutable: true,
+                    collectionDetails: null
+                }
+            })
+        );
+
+        // 6. Create Master Edition
+        tx.add(
+            createCreateMasterEditionV3Instruction({
+                edition: assetMasterEditionPda,
+                mint: assetMintKeypair.publicKey,
+                updateAuthority: collectionUpdateAuthorityKeypair.publicKey,
+                mintAuthority: collectionUpdateAuthorityKeypair.publicKey,
+                payer: feeAndRentPayerKeypair.publicKey,
+                metadata: assetMetadataPda,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+                rent: SYSVAR_RENT_PUBKEY
+            }, {
+                createMasterEditionArgs: {
+                    maxSupply: 0,
+                },
+            })
+        );
+
+        // 7. Verify collection
+        tx.add(
+            createVerifyCollectionInstruction({
+                metadata: assetMetadataPda,
+                collectionAuthority: collectionUpdateAuthorityKeypair.publicKey,
+                payer: feeAndRentPayerKeypair.publicKey,
+                collectionMint: collectionMintAccount,
+                collection: collectionMetadataPda,
+                collectionMasterEditionAccount: collectionMasterEditionPda,
+            })
+        );
+
+        const txHash = await connection.sendTransaction(tx, [feeAndRentPayerKeypair, collectionUpdateAuthorityKeypair, assetMintKeypair]);
+
+        console.log("Your transaction signature", txHash);
+
+        await delay(delayTimeCount);
+    });
+
+    it("initialize program config", async () => {
         const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(programId, CREAM_PAD_ACCOUNT_PREFIX);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
@@ -507,7 +552,8 @@ describe("cream-pad", () => {
             roundLimit: 100,
             distributionBasePoint: 5000,
             lockBasePoint: 5000,
-            lockDuration: new BN(5)
+            lockDuration: new BN(5),
+            mintingFee: new BN(mintingFee),
         })
             .accounts({
                 feeAndRentPayer: feeAndRentPayerKeypair.publicKey,
@@ -538,7 +584,8 @@ describe("cream-pad", () => {
             100,
             5000,
             5000,
-            new BN(5)
+            new BN(5),
+            new BN(mintingFee)
         );
     });
 
@@ -562,6 +609,7 @@ describe("cream-pad", () => {
             distributionBasePoint: 5000,
             lockBasePoint: 5000,
             lockDuration: new BN(5),
+            mintingFee: new BN(mintingFee),
             creamPadConfigBump: creamPadConfigBump
         })
             .accounts({
@@ -590,7 +638,8 @@ describe("cream-pad", () => {
             100,
             5000,
             5000,
-            new BN(5)
+            new BN(5),
+            new BN(mintingFee)
         );
     });
 
@@ -625,6 +674,8 @@ describe("cream-pad", () => {
             roundDuration: new BN(5),
             supply: new BN(tokensToLamports(200, 9).toString()),
             decayModel: DecayModel.Linear,
+            haveBuyLimit: true,
+            buyLimit: new BN(tokensToLamports(100, 9).toString()),
             padName: padName,
             creamPadConfigBump: creamPadConfigBump
         })
@@ -703,6 +754,8 @@ describe("cream-pad", () => {
             new BN(0),
             1,
             new BN(0),
+            true,
+            new BN(tokensToLamports(100, 9).toString())
         );
 
         await assertTokenBalance(connection, auctionConfigSellingTokenAccount, 200, "Auction Config Selling token account", "Auction Config Selling token account")
@@ -978,6 +1031,8 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(75, 9).toString()),
             1,
             new BN(0),
+            true,
+            new BN(tokensToLamports(100, 9).toString())
         );
 
         await assertUserAuctionAccount(
@@ -1123,6 +1178,8 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(75, 9).toString()),
             1,
             auctionRoundData.roundEndedAt,
+            true,
+            new BN(tokensToLamports(100, 9).toString())
         );
     });
 
@@ -1147,6 +1204,8 @@ describe("cream-pad", () => {
             previousRoundIndex: previousRoundIndex,
             nextRoundIndex: nextRoundIndex,
             nextRoundDuration: new BN(5),
+            nextHaveBuyLimit: true,
+            nextBuyLimit: new BN(tokensToLamports(100, 9).toString()),
             auctionConfigBump: auctionConfigBump,
             previousAuctionRoundConfigBump: previousAuctionRoundConfigBump
         })
@@ -1236,7 +1295,9 @@ describe("cream-pad", () => {
             new BN(0),
             new BN(0),
             2,
-            new BN(0)
+            new BN(0),
+            true,
+            new BN(tokensToLamports(100, 9).toString())
         );
     });
 
@@ -1344,7 +1405,9 @@ describe("cream-pad", () => {
             new BN(0),
             new BN(0),
             2,
-            auctionRoundData.roundEndedAt
+            auctionRoundData.roundEndedAt,
+            true,
+            new BN(tokensToLamports(100, 9).toString())
         );
     });
 
@@ -1633,6 +1696,17 @@ describe("cream-pad", () => {
 
         const auctionConfigData = await program.account.auctionAccount.fetch(auctionConfigPda);
 
+        await assertUserAuctionUnsoldDistributionAccount(
+            program,
+            userAuctionUnsoldDistributionConfigPda,
+            new BN(tokensToLamports(62.5, 9).toString())
+        );
+
+
+        await assertTokenBalance(connection, auctionConfigSellingTokenAccount, 0, "Auction Config Selling Token Account", "Auction Config Selling Token Account");
+
+        await assertTokenBalance(connection, userSellingTokenAccount, 137.5, "User Selling Token Account", "User Selling Token Account");
+
         await assertAuctionAccount(
             program,
             auctionConfigPda,
@@ -1668,17 +1742,153 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(300, 9).toString()),
             new BN(tokensToLamports(75, 9).toString())
         );
+    });
+
+    //// Collection
+    it("Initialize Collection Pad Config", async () => {
+        const roundIndex = "1";
+
+        const [creamPadConfigPda, creamPadConfigBump] = getCreamPadAccountPdaAndBump(program.programId, CREAM_PAD_ACCOUNT_PREFIX);
+        console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
+
+        const [collectionAuctionConfigPda] = getCollectionAuctionAccountPdaAndBump(program.programId, COLLECTION_AUCTION_ACCOUNT_PREFIX, collectionPadName, collectionMintAccount);
+        console.log("collectionAuctionConfigPda: ", collectionAuctionConfigPda.toBase58());
+
+        const [collectionAuctionRoundConfigPda] = getCollectionAuctionRoundAccountPdaAndBump(programId, COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX, collectionAuctionConfigPda, roundIndex);
+        console.log("collectionAuctionRoundConfigPda: ", collectionAuctionRoundConfigPda.toBase58());
 
 
-        await assertUserAuctionUnsoldDistributionAccount(
+        const collectionMetadataPda = getMetadataPda(MPL_TOKEN_METADATA_PROGRAM_ID, collectionMintAccount);
+        console.log("collectionMetadataPda: ", collectionMetadataPda.toBase58());
+
+        const tx = await program.methods.initializeCollectionPad({
+            paymentMint: paymentTokenMintAccount,
+            paymentReceiver: paymentReceiverKeypair.publicKey,
+            p0: new BN(tokensToLamports(4, 9).toString()),
+            ptmax: new BN(tokensToLamports(1.2, 9).toString()),
+            tmax: 2,
+            omega: new BN(tokensToLamports(2, 9).toString()),
+            alpha: new BN(tokensToLamports(2, 9).toString()),
+            timeShiftMax: new BN(2),
+            roundDuration: new BN(5),
+            supply: new BN(30),
+            decayModel: DecayModel.Linear,
+            startingIndex: new BN(1),
+            haveBuyLimit: true,
+            buyLimit: new BN(6),
+            sellerFeeBasisPoints: 500,
+            assetCreators: [{
+                address: creatorKeypair.publicKey,
+                share: 50
+            }, {address: collectionUpdateAuthorityKeypair.publicKey, share: 50}, {
+                address: collectionAuctionConfigPda,
+                share: 0
+            }],
+            assetName: assetName,
+            assetSymbol: assetSymbol,
+            assetUrl: assetUrl,
+            assetUrlSuffix: assetUrlSuffix,
+            padName: collectionPadName,
+            creamPadConfigBump: creamPadConfigBump
+        })
+            .accounts({
+                feeAndRentPayer: feeAndRentPayerKeypair.publicKey,
+                backAuthority: backAuthorityKeypair.publicKey,
+                creator: creatorKeypair.publicKey,
+                currentCollectionUpdateAuthority: collectionUpdateAuthorityKeypair.publicKey,
+                creamPadConfig: creamPadConfigPda,
+                collectionAuctionConfig: collectionAuctionConfigPda,
+                collectionAuctionRoundConfig: collectionAuctionRoundConfigPda,
+                collectionMintAccount: collectionMintAccount,
+                tokenProgram: collectionTokenProgramAccount,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+                rent: SYSVAR_RENT_PUBKEY,
+                tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID
+            })
+            .remainingAccounts([
+                // 0: collection metadata pda
+                {
+                    pubkey: collectionMetadataPda,
+                    isWritable: true,
+                    isSigner: false
+                }
+            ])
+            .signers([feeAndRentPayerKeypair, backAuthorityKeypair, creatorKeypair, collectionUpdateAuthorityKeypair])
+            .rpc({
+                skipPreflight: true
+            });
+
+        console.log("Your transaction signature", tx);
+
+        await delay(delayTimeCount);
+
+        await assertCollectionAuctionAccount(
             program,
-            userAuctionUnsoldDistributionConfigPda,
-            new BN(tokensToLamports(62.5, 9).toString())
+            collectionAuctionConfigPda,
+            creatorKeypair.publicKey,
+            collectionMintAccount,
+            paymentTokenMintAccount,
+            paymentReceiverKeypair.publicKey,
+            AuctionStatus.Started,
+            new BN(tokensToLamports(4, 9).toString()),
+            new BN(tokensToLamports(1.2, 9).toString()),
+            2,
+            new BN(tokensToLamports(2, 9).toString()),
+            new BN(tokensToLamports(2, 9).toString()),
+            new BN(2),
+            new BN(tokensToLamports(4, 9).toString()),
+            1,
+            [],
+            DecayModel.Linear,
+            500,
+            [{address: creatorKeypair.publicKey, share: 50}, {
+                address: collectionUpdateAuthorityKeypair.publicKey,
+                share: 50
+            }, {address: collectionAuctionConfigPda, share: 0}],
+            new BN(30),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            new BN(1),
+            new BN(31),
+            new BN(1),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            assetName,
+            assetSymbol,
+            assetUrl,
+            assetUrlSuffix
         );
 
-        await assertTokenBalance(connection, auctionConfigSellingTokenAccount, 0, "Auction Config Selling Token Account", "Auction Config Selling Token Account");
+        const auctionRoundData = await program.account.collectionAuctionRoundAccount.fetch(collectionAuctionRoundConfigPda);
 
-        await assertTokenBalance(connection, userSellingTokenAccount, 137.5, "User Selling Token Account", "User Selling Token Account");
+        await assertCollectionAuctionRoundAccount(
+            program,
+            collectionAuctionRoundConfigPda,
+            auctionRoundData.lastBlockTimestamp,
+            auctionRoundData.lastBlockTimestamp.addn(5),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            new BN(0),
+            new BN(tokensToLamports(4, 9).toString()),
+            AuctionRoundStatus.Started,
+            new BN(0),
+            new BN(0),
+            1,
+            new BN(0),
+            true,
+            new BN(6)
+        );
     });
 
     it("Remove Events", async () => {
@@ -1699,368 +1909,5 @@ describe("cream-pad", () => {
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-////// PDAs
-
-function getCreamPadAccountPdaAndBump(programAddress: PublicKey, prefix: string): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-        [Buffer.from(prefix)],
-        programAddress
-    )
-}
-
-function getAuctionAccountPdaAndBump(programAddress: PublicKey, prefix: string, padName: string, tokenMintAccount: PublicKey): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-        [
-            Buffer.from(prefix),
-            Buffer.from(padName),
-            tokenMintAccount.toBuffer()
-        ],
-        programAddress
-    )
-}
-
-function getAuctionVaultAccountPdaAndBump(programAddress: PublicKey, prefix: string, auctionConfig: PublicKey): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-        [
-            Buffer.from(prefix),
-            auctionConfig.toBuffer(),
-        ],
-        programAddress
-    )
-}
-
-function getAuctionRoundAccountPdaAndBump(programAddress: PublicKey, prefix: string, auctionConfig: PublicKey, auctionRoundIndex: string): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-        [
-            Buffer.from(prefix),
-            auctionConfig.toBuffer(),
-            Buffer.from(auctionRoundIndex),
-        ],
-        programAddress
-    )
-}
-
-
-function getUserAuctionAccountPdaAndBump(programAddress: PublicKey, prefix: string, auctionConfig: PublicKey, user: PublicKey): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-        [
-            Buffer.from(prefix),
-            auctionConfig.toBuffer(),
-            user.toBuffer(),
-        ],
-        programAddress
-    )
-}
-
-function getUserAuctionRoundAccountPdaAndBump(programAddress: PublicKey, prefix: string, auctionRoundConfig: PublicKey, userAuctionConfig: PublicKey): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-        [
-            Buffer.from(prefix),
-            auctionRoundConfig.toBuffer(),
-            userAuctionConfig.toBuffer(),
-        ],
-        programAddress
-    )
-}
-
-function getUserAuctionBuyReceiptAccountPdaAndBump(programAddress: PublicKey, prefix: string, userAuctionConfig: PublicKey, userBuyIndex: string): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-        [
-            Buffer.from(prefix),
-            userAuctionConfig.toBuffer(),
-            Buffer.from(userBuyIndex),
-        ],
-        programAddress
-    )
-}
-
-function getUserAuctionUnsoldDistributionAccountPdaAndBump(programAddress: PublicKey, prefix: string, userAuctionConfig: PublicKey): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-        [
-            Buffer.from(prefix),
-            userAuctionConfig.toBuffer(),
-        ],
-        programAddress
-    )
-}
-
-///// Assert
-async function assertTokenBalance(connection: Connection, ata: PublicKey, balance: number, message: string, assertMessage: string) {
-
-    const ataBalance = await connection.getTokenAccountBalance(ata);
-
-    console.log(message);
-    console.log(ataBalance);
-
-    assert(ataBalance.value.uiAmount === balance, assertMessage);
-}
-
-async function assertCreamPadAccount(program: Program<CreamPad>, pdaAddress: PublicKey, signingAuthority: PublicKey, backAuthority: PublicKey, isBackAuthorityRequired: boolean, programStatus: ProgramStatusType, isFeeRequired: boolean, feeBasePoint: number, feeReceiver: PublicKey, roundLimit: number, distributionBasePoint: number, lockBasePoint: number, lockDuration: BN) {
-    const data = await program.account.creamPadAccount.fetch(pdaAddress);
-
-    console.log("Cream pad account: >>>>>>>> ", data);
-
-    assert(data.signingAuthority.toBase58() === signingAuthority.toBase58(), "Cream Pad -> signingAuthority");
-    assert(data.backAuthority.toBase58() === backAuthority.toBase58(), "Cream Pad -> backAuthority");
-    assert(data.isBackAuthorityRequired === isBackAuthorityRequired, "Cream Pad -> isBackAuthorityRequired");
-    assert(JSON.stringify(data.programStatus) === JSON.stringify(programStatus), "Cream Pad -> programStatus");
-    assert(data.isFeeRequired === isFeeRequired, "Cream Pad -> isFeeRequired");
-    assert(data.feeBasePoint === feeBasePoint, "Cream Pad -> feeBasePoint");
-    assert(data.feeReceiver.toBase58() === feeReceiver.toBase58(), "Cream Pad -> feeReceiver");
-    assert(data.roundLimit === roundLimit, "Cream Pad -> roundLimit");
-    assert(data.distributionBasePoint === distributionBasePoint, "Cream Pad -> distributionBasePoint");
-    assert(data.lockBasePoint === lockBasePoint, "Cream Pad -> lockBasePoint");
-    assert(data.lockDuration.toNumber() === lockDuration.toNumber(), "Cream Pad -> lockDuration");
-}
-
-async function assertAuctionAccount(
-    program: Program<CreamPad>,
-    pdaAddress: PublicKey,
-    creator: PublicKey,
-    mint: PublicKey,
-    paymentMint: PublicKey,
-    paymentReceiver: PublicKey,
-    status: AuctionStatusType,
-    p0: BN,
-    ptmax: BN,
-    tmax: number,
-    omega: BN,
-    alpha: BN,
-    timeShiftMax: BN,
-    currentPrice: BN,
-    currentRound: number,
-    boostHistory: BN[],
-    decayModel: DecayModelType,
-    totalSupply: BN,
-    totalSupplySold: BN,
-    totalUserBuyCount: BN,
-    totalUserCount: BN,
-    totalUnsoldSupplyLocked: BN,
-    unsoldSupplyLockedAt: BN,
-    unsoldSupplyCanUnlockAt: BN,
-    unsoldSupplyUnlockedAt: BN,
-    totalUnsoldSupplyDistribution: BN,
-    totalUnsoldSupplyDistributionClaimed: BN,
-    totalUnsoldSupplyDistributionClaimedCount: BN,
-    totalPayment: BN,
-    totalFee: BN
-) {
-    const data = await program.account.auctionAccount.fetch(pdaAddress);
-
-    console.log("Auction account: >>>>>>>> ", data);
-
-    assert(data.creator.toBase58() === creator.toBase58(), "Auction -> creator");
-    assert(data.mint.toBase58() === mint.toBase58(), "Auction -> mint");
-    assert(data.paymentMint.toBase58() === paymentMint.toBase58(), "Auction -> paymentMint");
-    assert(data.paymentReceiver.toBase58() === paymentReceiver.toBase58(), "Auction -> paymentReceiver");
-    assert(JSON.stringify(data.status) === JSON.stringify(status), "Auction -> status");
-    assert(data.p0.toNumber() === p0.toNumber(), "Auction -> p0");
-    assert(data.ptmax.toNumber() === ptmax.toNumber(), "Auction -> ptmax");
-    assert(data.tmax === tmax, "Auction -> tmax");
-    assert(data.omega.toNumber() === omega.toNumber(), "Auction -> omega");
-    assert(data.alpha.toNumber() === alpha.toNumber(), "Auction -> alpha");
-    assert(data.timeShiftMax.toNumber() === timeShiftMax.toNumber(), "Auction -> timeShiftMax");
-    assert(data.currentPrice.toNumber() === currentPrice.toNumber(), "Auction -> currentPrice");
-    assert(data.currentRound === currentRound, "Auction -> currentRound");
-
-    for (let i = 0; i < data.boostHistory.length; i++) {
-        assert(data.boostHistory[i].toNumber() === boostHistory[i].toNumber(), "Auction -> boostHistory");
-    }
-
-    assert(JSON.stringify(data.decayModel) === JSON.stringify(decayModel), "Auction -> decayModel");
-
-    assert(data.totalSupply.toNumber() === totalSupply.toNumber(), "Auction -> totalSupply");
-    assert(data.totalSupplySold.toNumber() === totalSupplySold.toNumber(), "Auction -> totalSupplySold");
-    assert(data.totalUserBuyCount.toNumber() === totalUserBuyCount.toNumber(), "Auction -> totalUserBuyCount");
-    assert(data.totalUserCount.toNumber() === totalUserCount.toNumber(), "Auction -> totalUserCount");
-    assert(data.totalUnsoldSupplyLocked.toNumber() === totalUnsoldSupplyLocked.toNumber(), "Auction -> totalUnsoldSupplyLocked");
-    assert(data.unsoldSupplyLockedAt.toNumber() === unsoldSupplyLockedAt.toNumber(), "Auction -> unsoldSupplyLockedAt");
-    assert(data.unsoldSupplyCanUnlockAt.toNumber() === unsoldSupplyCanUnlockAt.toNumber(), "Auction -> unsoldSupplyCanUnlockAt");
-    assert(data.unsoldSupplyUnlockedAt.toNumber() === unsoldSupplyUnlockedAt.toNumber(), "Auction -> unsoldSupplyUnlockedAt");
-    assert(data.totalUnsoldSupplyDistribution.toNumber() === totalUnsoldSupplyDistribution.toNumber(), "Auction -> totalUnsoldSupplyDistribution");
-    assert(data.totalUnsoldSupplyDistributionClaimed.toNumber() === totalUnsoldSupplyDistributionClaimed.toNumber(), "Auction -> totalUnsoldSupplyDistributionClaimed");
-    assert(data.totalUnsoldSupplyDistributionClaimedCount.toNumber() === totalUnsoldSupplyDistributionClaimedCount.toNumber(), "Auction -> totalUnsoldSupplyDistributionClaimedCount");
-    assert(data.totalPayment.toNumber() === totalPayment.toNumber(), "Auction -> totalPayment");
-    assert(data.totalFee.toNumber() === totalFee.toNumber(), "Auction -> totalFee");
-}
-
-async function assertAuctionRoundAccount(
-    program: Program<CreamPad>,
-    pdaAddress: PublicKey,
-    roundStartAt: BN,
-    roundEndAt: BN,
-    totalSupplySold: BN,
-    totalUserBuyCount: BN,
-    totalUserCount: BN,
-    boost: BN,
-    price: BN,
-    status: AuctionRoundStatusType,
-    totalPayment: BN,
-    totalFee: BN,
-    round: number,
-    roundEndedAt: BN
-) {
-    const data = await program.account.auctionRoundAccount.fetch(pdaAddress);
-
-    console.log("Auction Round account: >>>>>>>> ", data);
-
-    assert(data.roundStartAt.toNumber() === roundStartAt.toNumber(), "Auction Round -> roundStartAt");
-    assert(data.roundEndAt.toNumber() === roundEndAt.toNumber(), "Auction Round -> roundEndAt");
-    assert(data.totalSupplySold.toNumber() === totalSupplySold.toNumber(), "Auction Round -> totalSupplySold");
-    assert(data.totalUserBuyCount.toNumber() === totalUserBuyCount.toNumber(), "Auction Round -> totalUserBuyCount");
-    assert(data.totalUserCount.toNumber() === totalUserCount.toNumber(), "Auction Round -> totalUserCount");
-    assert(data.boost.toNumber() === boost.toNumber(), "Auction Round -> boost");
-    assert(data.price.toNumber() === price.toNumber(), "Auction Round -> price");
-    assert(JSON.stringify(data.status) === JSON.stringify(status), "Auction Round -> status");
-    assert(data.totalPayment.toNumber() === totalPayment.toNumber(), "Auction Round -> totalPayment");
-    assert(data.totalFee.toNumber() === totalFee.toNumber(), "Auction Round -> totalFee");
-    assert(data.round === round, "Auction Round -> round");
-    assert(data.roundEndedAt.toNumber() === roundEndedAt.toNumber(), "Auction Round -> roundEndedAt");
-}
-
-async function assertUserAuctionAccount(
-    program: Program<CreamPad>,
-    pdaAddress: PublicKey,
-    user: PublicKey,
-    totalBuyCount: BN,
-    totalBuyAmount: BN,
-    totalPayment: BN,
-    status: UserAuctionStatusType
-) {
-    const data = await program.account.userAuctionAccount.fetch(pdaAddress);
-
-    console.log("User auction account: >>>>>>>> ", data);
-
-    assert(data.user.toBase58() === user.toBase58(), "User Auction -> user");
-    assert(data.totalBuyCount.toNumber() === totalBuyCount.toNumber(), "User Auction -> totalBuyCount");
-    assert(data.totalBuyAmount.toNumber() === totalBuyAmount.toNumber(), "User Auction -> totalBuyAmount");
-    assert(data.totalPayment.toNumber() === totalPayment.toNumber(), "User Auction -> totalPayment");
-    assert(JSON.stringify(data.status) === JSON.stringify(status), "User Auction -> status");
-}
-
-async function assertUserAuctionRoundAccount(
-    program: Program<CreamPad>,
-    pdaAddress: PublicKey,
-    totalBuyCount: BN,
-    totalBuyAmount: BN,
-    totalPayment: BN,
-    round: number
-) {
-    const data = await program.account.userAuctionRoundAccount.fetch(pdaAddress);
-
-    console.log("User auction round account: >>>>>>>> ", data);
-
-    assert(data.totalBuyCount.toNumber() === totalBuyCount.toNumber(), "User Auction Round -> totalBuyCount");
-    assert(data.totalBuyAmount.toNumber() === totalBuyAmount.toNumber(), "User Auction Round -> totalBuyAmount");
-    assert(data.totalPayment.toNumber() === totalPayment.toNumber(), "User Auction Round -> totalPayment");
-    assert(data.round === round, "User Auction Round -> round");
-}
-
-async function assertUserAuctionBuyReceiptAccount(
-    program: Program<CreamPad>,
-    pdaAddress: PublicKey,
-    buyAmount: BN,
-    payment: BN,
-    round: number,
-    index: BN
-) {
-    const data = await program.account.userAuctionBuyReceiptAccount.fetch(pdaAddress);
-
-    console.log("User auction buy receipt account: >>>>>>>> ", data);
-
-    assert(data.buyAmount.toNumber() === buyAmount.toNumber(), "User Auction Buy Receipt -> buyAmount");
-    assert(data.payment.toNumber() === payment.toNumber(), "User Auction Buy Receipt -> payment");
-    assert(data.round === round, "User Auction Buy Receipt -> round");
-    assert(data.index.toNumber() === index.toNumber(), "User Auction Buy Receipt -> index");
-}
-
-async function assertUserAuctionUnsoldDistributionAccount(
-    program: Program<CreamPad>,
-    pdaAddress: PublicKey,
-    amount: BN
-) {
-    const data = await program.account.userAuctionUnsoldDistributionAccount.fetch(pdaAddress);
-
-    console.log("User auction unsold distribution account: >>>>>>>> ", data);
-
-    assert(data.amount.toNumber() === amount.toNumber(), "User Auction Unsold Distribution -> amount");
-}
-
-
-///// MATH
-
-function calculateBoost(
-    actualSales: number,
-    expectedSales: number,
-    omega: number,
-    alpha: number,
-    timeShiftMax: number
-): number {
-    if (expectedSales === 0) return 0; // Prevent division by zero
-    const ratio = Math.floor((actualSales * omega) / expectedSales);
-    return Math.min(alpha * ratio, timeShiftMax);
-}
-
-function calculatePrice(
-    p0: number,
-    ptmax: number,
-    tMax: number,
-    currentRound: number,
-    boostHistory: number[],
-    decayModel: number,
-    timeShiftMax: number
-): number {
-    let totalBoost = 0;
-
-    // ✅ Fix: Correctly apply boost by shifting the time effect
-    for (let i = 0; i < currentRound; i++) {
-        totalBoost += 1 - Math.min(boostHistory[i] || 0, timeShiftMax);
-    }
-
-    if (decayModel === 0) { // Linear decay
-        const k0 = (p0 - ptmax) / (tMax - 1); // ✅ Fix: Use `tMax - 1` instead of `tMax`
-        return Math.max(p0 - k0 * totalBoost, ptmax);
-    } else { // Exponential decay
-        if (p0 <= ptmax) return ptmax; // Prevent log errors
-
-        const lambda0 = (Math.log(p0) - Math.log(ptmax)) / (tMax - 1);
-        return Math.max(p0 * Math.exp(-lambda0 * totalBoost), ptmax);
-    }
-}
-
-function adjustAmount(amount: number, fromDecimals: number, toDecimals: number): number {
-    const factor = Math.pow(10, Math.abs(toDecimals - fromDecimals));
-
-    return toDecimals > fromDecimals
-        ? amount * factor
-        : Math.floor(amount / factor); // Use floor to avoid floating-point precision errors
-}
-
-function calculateTotalPrice(
-    amount: number,
-    price: number,
-    fromDecimals: number,
-    toDecimals: number,
-    outputDecimals: number
-): number {
-    const adjustedAmount = adjustAmount(amount, fromDecimals, toDecimals);
-    const totalPrice = BigInt(adjustedAmount) * BigInt(price);
-    const divisor = BigInt(Math.pow(10, outputDecimals));
-
-    return Number(totalPrice / divisor);
-}
-
-function lamportsToTokens(lamports: number, mintDecimals: number): number {
-    return lamports / 10 ** mintDecimals;
-}
-
-// console.log(lamportsToTokens(2500000000n, 9)); // 2.5 tokens
-
-function tokensToLamports(amount: number, mintDecimals: number): number {
-    return amount * (10 ** mintDecimals);
-}
-
-// console.log(tokensToLamports(2.5, 9)); // 2500000000 lamports (2.5 tokens with 9 decimals)
 
 

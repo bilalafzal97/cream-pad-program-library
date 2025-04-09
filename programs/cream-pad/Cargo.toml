@@ -1,6 +1,6 @@
 [package]
 name = "cream-pad"
-version = "0.0.3"
+version = "0.0.4"
 description = "Cream Pad Program"
 edition = "2021"
 
@@ -17,5 +17,6 @@ default = []
 
 [dependencies]
 anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
-anchor-spl = { version = "0.29.0", features = [] }
+anchor-spl = { version = "0.29.0", features = ["metadata"] }
+mpl-token-metadata = { version = "5.1.0", features = [] }
 solana-security-txt = { version = "1.0.2", features = [] }
