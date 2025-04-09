@@ -1,33 +1,19 @@
 use crate::states::{
-    AuctionAccount, AuctionRoundAccount, AuctionRoundStatus, AuctionStatus,
-    CollectionAuctionAccount, CollectionAuctionRoundAccount, CreamPadAccount, UserAuctionAccount,
-    UserAuctionBuyReceiptAccount, UserAuctionRoundAccount, UserAuctionStatus,
-    UserAuctionUnsoldDistributionAccount, UserCollectionAuctionAccount,
-    UserCollectionAuctionBuyReceiptAccount, UserCollectionAuctionRoundAccount,
-    UserCollectionAuctionUnsoldDistributionAccount, AUCTION_ACCOUNT_PREFIX,
-    COLLECTION_AUCTION_ACCOUNT_PREFIX, COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX,
-    USER_COLLECTION_AUCTION_ACCOUNT_PREFIX, USER_COLLECTION_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX,
-    USER_COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX,
+    CollectionAuctionAccount, CreamPadAccount, UserCollectionAuctionAccount,
+    UserCollectionAuctionUnsoldDistributionAccount,
+    COLLECTION_AUCTION_ACCOUNT_PREFIX,
+    USER_COLLECTION_AUCTION_ACCOUNT_PREFIX,
     USER_COLLECTION_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    adjust_amount, calculate_boost, calculate_total_price, check_back_authority, check_buy_index,
-    check_current_round, check_eligible_for_collection_distribution,
-    check_is_auction_ended_or_sold_out, check_is_auction_is_distribution,
-    check_is_auction_round_ended, check_is_auction_round_time_run_out, check_is_program_working,
-    check_payment_fee_receiver, check_payment_mint_account, check_payment_receiver,
-    check_remaining_supply, check_round_buy_limit, check_signer_exist,
-    check_token_account_authority, try_get_remaining_account_info, BASE_POINT,
+    check_back_authority, check_eligible_for_collection_distribution, check_is_auction_is_distribution, check_is_program_working,
+    check_remaining_supply, check_signer_exist, try_get_remaining_account_info, BASE_POINT,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
-use anchor_spl::associated_token::{
-    create as associated_token_create, Create as AssociatedTokenCreate,
-};
-use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
+use anchor_spl::token_interface::Mint;
 
 use crate::events::CollectionClaimDistributionEvent;
-use crate::instructions::user::{ClaimDistributionInputAccounts, ClaimDistributionParams};
 use anchor_lang::solana_program::sysvar::instructions::{
     get_instruction_relative, load_current_index_checked,
 };

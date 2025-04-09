@@ -2,16 +2,13 @@ use crate::states::{
     AuctionStatus, CollectionAuctionAccount, CreamPadAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    adjust_amount, check_back_authority, check_is_auction_ended, check_is_program_working,
+    check_back_authority, check_is_auction_ended, check_is_program_working,
     check_program_id, check_signer_exist, check_supply_locker, try_get_remaining_account_info,
     BASE_POINT,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
-};
+use anchor_spl::token_interface::Mint;
 
 use crate::events::TreasuryAndDistributionEvent;
 

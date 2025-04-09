@@ -1,20 +1,17 @@
-use crate::error::CreamPadError;
 use crate::events::InitializeCollectionPadEvent;
 use crate::states::{
-    AssetCreator, AuctionAccount, AuctionRoundAccount, AuctionStatus, CollectionAuctionAccount,
-    CollectionAuctionRoundAccount, CreamPadAccount, DecayModelType, AUCTION_ACCOUNT_PREFIX,
-    AUCTION_ROUND_ACCOUNT_PREFIX, COLLECTION_AUCTION_ACCOUNT_PREFIX,
+    AssetCreator, AuctionStatus, CollectionAuctionAccount,
+    CollectionAuctionRoundAccount, CreamPadAccount, DecayModelType, COLLECTION_AUCTION_ACCOUNT_PREFIX,
     COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX, CREAM_PAD_ACCOUNT_PREFIX,
 };
-use crate::utils::{adjust_amount, check_back_authority, check_creators_share, check_is_program_working, check_ptmax, check_round_limit, check_seller_fee_basis_points, check_supply_evenly_divisible, check_unique_creators, check_value_is_zero, try_get_remaining_account_info};
+use crate::utils::{check_back_authority, check_creators_share, check_is_program_working, check_ptmax, check_round_limit, check_seller_fee_basis_points, check_supply_evenly_divisible, check_unique_creators, check_value_is_zero, try_get_remaining_account_info};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::metadata::{
-    mpl_token_metadata::types::{Creator, DataV2},
     update_metadata_accounts_v2, Metadata, UpdateMetadataAccountsV2,
 };
 use anchor_spl::token_interface::{
-    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
+    Mint, TokenInterface,
 };
 
 pub const FIRST_ROUND: &str = "1";

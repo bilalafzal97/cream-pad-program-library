@@ -139,6 +139,13 @@ pub mod cream_pad {
         handle_treasury_and_distribute(ctx, &params)
     }
 
+    pub fn mint_treasury_asset<'info>(
+        ctx: Context<'_, '_, 'info, 'info, MintTreasuryAssetInputAccounts<'info>>,
+        params: MintTreasuryAssetInputParams,
+    ) -> Result<()> {
+        handle_mint_treasury_asset(ctx, &params)
+    }
+
     pub fn buy_collection_asset<'info>(
         ctx: Context<'_, '_, 'info, 'info, BuyCollectionAssetInputAccounts<'info>>,
         params: BuyCollectionAssetParams,

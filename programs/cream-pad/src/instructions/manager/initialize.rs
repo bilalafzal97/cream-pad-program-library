@@ -68,7 +68,7 @@ pub fn handle_initialize(
     check_value_is_zero(params.lock_base_point as usize)?;
     check_value_is_zero(params.lock_duration as usize)?;
     check_value_is_zero(params.minting_fee as usize)?;
-    check_fee_base_point(params.fee_base_point)?;;
+    check_fee_base_point(params.fee_base_point)?;
     check_distribution_and_lock_base_point(
         params
             .distribution_base_point

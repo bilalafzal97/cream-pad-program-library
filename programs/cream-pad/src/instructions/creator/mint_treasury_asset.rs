@@ -1,17 +1,13 @@
-use crate::error::CreamPadError;
 use crate::events::MintTreasuryAssetEvent;
 use crate::states::{
-    AssetCreator, AuctionAccount, AuctionRoundAccount, AuctionStatus, CollectionAuctionAccount,
-    CollectionAuctionRoundAccount, CreamPadAccount, DecayModelType, AUCTION_ACCOUNT_PREFIX,
-    AUCTION_ROUND_ACCOUNT_PREFIX, COLLECTION_AUCTION_ACCOUNT_PREFIX,
-    COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX, CREAM_PAD_ACCOUNT_PREFIX,
+    CollectionAuctionAccount, CreamPadAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    adjust_amount, check_back_authority, check_creators_share, check_is_auction_is_locked,
+    check_back_authority, check_is_auction_is_locked,
     check_is_exceeding_end_index, check_is_program_working, check_is_treasury_full,
-    check_program_id, check_ptmax, check_round_limit, check_seller_fee_basis_points,
-    check_signer_exist, check_supply_evenly_divisible, check_token_account_authority,
-    check_treasury, check_unique_creators, check_value_is_zero, try_get_remaining_account_info,
+    check_program_id,
+    check_signer_exist,
+    check_treasury, try_get_remaining_account_info,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
@@ -23,12 +19,11 @@ use anchor_spl::associated_token::{
 };
 use anchor_spl::metadata::{
     create_master_edition_v3, create_metadata_accounts_v3,
-    mpl_token_metadata::types::{Collection, Creator, DataV2},
-    update_metadata_accounts_v2, verify_collection, CreateMasterEditionV3,
-    CreateMetadataAccountsV3, Metadata, UpdateMetadataAccountsV2, VerifyCollection,
+    mpl_token_metadata::types::{Collection, Creator, DataV2}, verify_collection, CreateMasterEditionV3,
+    CreateMetadataAccountsV3, Metadata, VerifyCollection,
 };
 use anchor_spl::token_interface::{
-    mint_to, transfer_checked, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked,
+    mint_to, Mint, MintTo, TokenInterface,
 };
 
 #[repr(C)]
@@ -91,7 +86,7 @@ pub struct MintTreasuryAssetInputAccounts<'info> {
     pub instructions_sysvar: AccountInfo<'info>,
 }
 
-pub fn handle_initialize_collection_pad<'info>(
+pub fn handle_mint_treasury_asset<'info>(
     ctx: Context<'_, '_, 'info, 'info, MintTreasuryAssetInputAccounts<'info>>,
     params: &MintTreasuryAssetInputParams,
 ) -> Result<()> {

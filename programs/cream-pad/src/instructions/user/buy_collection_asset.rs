@@ -1,7 +1,6 @@
 use crate::states::{
-    AuctionAccount, AuctionRoundAccount, AuctionRoundStatus, AuctionStatus,
-    CollectionAuctionAccount, CollectionAuctionRoundAccount, CreamPadAccount, UserAuctionAccount,
-    UserAuctionBuyReceiptAccount, UserAuctionRoundAccount, UserAuctionStatus,
+    AuctionRoundStatus, AuctionStatus,
+    CollectionAuctionAccount, CollectionAuctionRoundAccount, CreamPadAccount, UserAuctionStatus,
     UserCollectionAuctionAccount, UserCollectionAuctionBuyReceiptAccount,
     UserCollectionAuctionRoundAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX,
     COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX, USER_COLLECTION_AUCTION_ACCOUNT_PREFIX,
@@ -9,7 +8,7 @@ use crate::states::{
     USER_COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    adjust_amount, calculate_boost, calculate_total_price, check_back_authority, check_buy_index,
+    adjust_amount, calculate_boost, check_back_authority, check_buy_index,
     check_current_round, check_is_auction_ended_or_sold_out, check_is_auction_round_ended,
     check_is_auction_round_time_run_out, check_is_program_working, check_payment_fee_receiver,
     check_payment_mint_account, check_payment_receiver, check_remaining_supply,
@@ -191,23 +190,21 @@ pub fn handle_buy_collection_asset<'info>(
             .unwrap(),
     )?;
 
-    let collection_program_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 2)?;
     let payment_token_program_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 3)?;
+        try_get_remaining_account_info(ctx.remaining_accounts, 2)?;
     let associated_token_program_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 4)?;
+        try_get_remaining_account_info(ctx.remaining_accounts, 3)?;
 
     let user_payment_token_account_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 5)?;
+        try_get_remaining_account_info(ctx.remaining_accounts, 4)?;
 
-    let payment_receiver_account_info = try_get_remaining_account_info(ctx.remaining_accounts, 6)?;
+    let payment_receiver_account_info = try_get_remaining_account_info(ctx.remaining_accounts, 5)?;
     let payment_receiver_token_account_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 7)?;
+        try_get_remaining_account_info(ctx.remaining_accounts, 6)?;
 
-    let fee_receiver_account_info = try_get_remaining_account_info(ctx.remaining_accounts, 8)?;
+    let fee_receiver_account_info = try_get_remaining_account_info(ctx.remaining_accounts, 7)?;
     let fee_receiver_payment_token_account_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 9)?;
+        try_get_remaining_account_info(ctx.remaining_accounts, 8)?;
 
     let current_round_index: u16 = params.current_round_index.clone().parse().unwrap();
 
