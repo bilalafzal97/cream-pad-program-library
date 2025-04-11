@@ -15,6 +15,14 @@ const USER_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX: string = "UAUDAP";
 const COLLECTION_AUCTION_ACCOUNT_PREFIX: string = "CAAP";
 const COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX: string = "CARAP";
 
+const USER_COLLECTION_AUCTION_ACCOUNT_PREFIX: string = "UCAAP";
+
+const USER_COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX: string = "UCARAP";
+
+const USER_COLLECTION_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX: string = "UCABRAP";
+
+const USER_COLLECTION_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX: string = "UCAUDAP";
+
 
 ////// PDAs
 
@@ -143,6 +151,59 @@ export function getCollectionAuctionRoundAccountPdaAndBump(programAddress: Publi
             Buffer.from(COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX),
             collectionAuctionConfig.toBuffer(),
             Buffer.from(auctionRoundIndex),
+        ],
+        programAddress
+    )
+}
+
+export function getUserCollectionAuctionAccountPdaAndBump(programAddress: PublicKey, collectionAuctionConfig: PublicKey, user: PublicKey): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+        [
+            Buffer.from(USER_COLLECTION_AUCTION_ACCOUNT_PREFIX),
+            collectionAuctionConfig.toBuffer(),
+            user.toBuffer(),
+        ],
+        programAddress
+    )
+}
+
+export function getUserCollectionAuctionRoundAccountPdaAndBump(programAddress: PublicKey, collectionAuctionRoundConfig: PublicKey, userCollectionAuctionConfig: PublicKey): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+        [
+            Buffer.from(USER_COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX),
+            collectionAuctionRoundConfig.toBuffer(),
+            userCollectionAuctionConfig.toBuffer(),
+        ],
+        programAddress
+    )
+}
+
+export function getUserCollectionAuctionBuyReceiptAccountPdaAndBump(programAddress: PublicKey, userCollectionAuctionConfig: PublicKey, userBuyIndex: string): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+        [
+            Buffer.from(USER_COLLECTION_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX),
+            userCollectionAuctionConfig.toBuffer(),
+            Buffer.from(userBuyIndex),
+        ],
+        programAddress
+    )
+}
+
+export function getUserCollectionAuctionUnsoldDistributionAccountPdaAndBump(programAddress: PublicKey, userCollectionAuctionConfig: PublicKey): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+        [
+            Buffer.from(USER_COLLECTION_AUCTION_UNSOLD_DISTRIBUTION_ACCOUNT_PREFIX),
+            userCollectionAuctionConfig.toBuffer(),
+        ],
+        programAddress
+    )
+}
+
+export function getCollectionAssetPdaAndBump(programAddress: PublicKey, collectionAuctionConfig: PublicKey, assetUuid: string): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+        [
+            collectionAuctionConfig.toBuffer(),
+            Buffer.from(assetUuid)
         ],
         programAddress
     )

@@ -160,11 +160,11 @@ pub mod cream_pad {
         handle_fill_bought_collection_asset(ctx, &params)
     }
 
-    pub fn collection_asset_distribution<'info>(
+    pub fn claim_collection_asset_distribution<'info>(
         ctx: Context<'_, '_, 'info, 'info, ClaimCollectionAssetDistributionInputAccounts<'info>>,
         params: ClaimCollectionAssetDistributionParams,
     ) -> Result<()> {
-        handle_collection_asset_distribution(ctx, &params)
+        handle_claim_collection_asset_distribution(ctx, &params)
     }
 
     pub fn fill_claimed_collection_asset_distribution<'info>(

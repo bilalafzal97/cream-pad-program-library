@@ -24,9 +24,6 @@ pub struct GiveCollectionUpdateAuthorityInputParams {
 #[derive(Accounts)]
 #[instruction(params: GiveCollectionUpdateAuthorityInputParams)]
 pub struct GiveCollectionUpdateAuthorityInputAccounts<'info> {
-    #[account(mut)]
-    pub fee_and_rent_payer: Signer<'info>,
-
     pub back_authority: Signer<'info>,
 
     /// CHECK: new_collection_update_authority

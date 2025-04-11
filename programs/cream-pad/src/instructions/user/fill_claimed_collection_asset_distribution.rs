@@ -185,7 +185,7 @@ pub fn handle_fill_claimed_collection_asset_distribution<'info>(
 
     check_is_distribution_full(
         user_collection_auction_unsold_distribution_config
-            .amount
+            .amount_filled
             .checked_add(1)
             .unwrap(),
         user_collection_auction_unsold_distribution_config.amount,

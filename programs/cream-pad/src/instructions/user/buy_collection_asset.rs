@@ -1,22 +1,21 @@
 use crate::states::{
-    AuctionRoundStatus, AuctionStatus,
-    CollectionAuctionAccount, CollectionAuctionRoundAccount, CreamPadAccount, UserAuctionStatus,
-    UserCollectionAuctionAccount, UserCollectionAuctionBuyReceiptAccount,
-    UserCollectionAuctionRoundAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX,
-    COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX, USER_COLLECTION_AUCTION_ACCOUNT_PREFIX,
-    USER_COLLECTION_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX,
+    AuctionRoundStatus, AuctionStatus, CollectionAuctionAccount, CollectionAuctionRoundAccount,
+    CreamPadAccount, UserAuctionStatus, UserCollectionAuctionAccount,
+    UserCollectionAuctionBuyReceiptAccount, UserCollectionAuctionRoundAccount,
+    COLLECTION_AUCTION_ACCOUNT_PREFIX, COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX,
+    USER_COLLECTION_AUCTION_ACCOUNT_PREFIX, USER_COLLECTION_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX,
     USER_COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    adjust_amount, calculate_boost, check_back_authority, check_buy_index,
-    check_current_round, check_is_auction_ended_or_sold_out, check_is_auction_round_ended,
+    adjust_amount, calculate_boost, check_back_authority, check_buy_index, check_current_round,
+    check_is_auction_ended_or_sold_out, check_is_auction_round_ended,
     check_is_auction_round_time_run_out, check_is_program_working, check_payment_fee_receiver,
     check_payment_mint_account, check_payment_receiver, check_remaining_supply,
     check_round_buy_limit, check_signer_exist, check_token_account_authority,
     try_get_remaining_account_info, BASE_POINT,
 };
-use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
+use anchor_lang::{prelude::*, Discriminator};
 use anchor_spl::associated_token::{
     create as associated_token_create, Create as AssociatedTokenCreate,
 };
@@ -42,6 +41,8 @@ pub struct BuyCollectionAssetParams {
     pub collection_auction_config_bump: u8,
 
     pub collection_auction_round_config_bump: u8,
+
+    pub user_collection_auction_buy_receipt_config_bump: u8,
 }
 
 #[derive(Accounts)]
@@ -102,19 +103,17 @@ pub struct BuyCollectionAssetInputAccounts<'info> {
     pub user_collection_auction_round_config:
         Box<Account<'info, UserCollectionAuctionRoundAccount>>,
 
+    /// CHECK: user_collection_auction_buy_receipt_config
     #[account(
-        init,
-        payer = fee_and_rent_payer,
-        space = UserCollectionAuctionBuyReceiptAccount::space(),
+        mut,
         seeds = [
         USER_COLLECTION_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX.as_ref(),
         user_collection_auction_config.key().as_ref(),
         params.buy_index.as_ref(),
         ],
-        bump,
+        bump = params.user_collection_auction_buy_receipt_config_bump,
     )]
-    pub user_collection_auction_buy_receipt_config:
-        Box<Account<'info, UserCollectionAuctionBuyReceiptAccount>>,
+    pub user_collection_auction_buy_receipt_config: AccountInfo<'info>,
 
     pub collection_mint_account: Box<InterfaceAccount<'info, Mint>>,
 
@@ -522,18 +521,72 @@ pub fn handle_buy_collection_asset<'info>(
         .checked_add(total_price)
         .unwrap();
 
-    let user_collection_auction_buy_receipt_config: &mut Box<
-        Account<UserCollectionAuctionBuyReceiptAccount>,
-    > = &mut ctx.accounts.user_collection_auction_buy_receipt_config;
-    user_collection_auction_buy_receipt_config.last_block_timestamp = timestamp;
-    user_collection_auction_buy_receipt_config.buy_amount = params.amount;
-    user_collection_auction_buy_receipt_config.payment = total_price;
-    user_collection_auction_buy_receipt_config.round = current_round_index;
-    user_collection_auction_buy_receipt_config.index = buy_index;
-    user_collection_auction_buy_receipt_config.pad_name = params.pad_name.clone();
-    user_collection_auction_buy_receipt_config.collection_mint =
-        ctx.accounts.collection_mint_account.key();
-    user_collection_auction_buy_receipt_config.user = ctx.accounts.user.key();
+    // create user_collection_auction_buy_receipt_config PDA
+    let user_collection_auction_buy_receipt_config_space: usize =
+        UserCollectionAuctionBuyReceiptAccount::space();
+    let user_collection_auction_buy_receipt_config_space_lamports: u64 =
+        Rent::get()?.minimum_balance(user_collection_auction_buy_receipt_config_space);
+
+    let user_collection_auction_buy_receipt_config_bump_bytes = params
+        .user_collection_auction_buy_receipt_config_bump
+        .to_le_bytes();
+    let user_collection_auction_config_key: Pubkey =
+        ctx.accounts.user_collection_auction_config.key();
+
+    let user_collection_auction_buy_receipt_config_signer_seeds: &[&[&[u8]]] = &[&[
+        USER_COLLECTION_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX.as_ref(),
+        user_collection_auction_config_key.as_ref(),
+        params.buy_index.as_ref(),
+        user_collection_auction_buy_receipt_config_bump_bytes.as_ref(),
+    ]];
+
+    let create_user_collection_auction_buy_receipt_config_ix =
+        anchor_lang::solana_program::system_instruction::create_account(
+            &ctx.accounts.fee_and_rent_payer.key(),
+            &ctx.accounts
+                .user_collection_auction_buy_receipt_config
+                .key(),
+            user_collection_auction_buy_receipt_config_space_lamports,
+            user_collection_auction_buy_receipt_config_space as u64,
+            &ctx.program_id,
+        );
+
+    anchor_lang::solana_program::program::invoke_signed(
+        &create_user_collection_auction_buy_receipt_config_ix,
+        &[
+            ctx.accounts.fee_and_rent_payer.to_account_info(),
+            ctx.accounts
+                .user_collection_auction_buy_receipt_config
+                .to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
+        ],
+        user_collection_auction_buy_receipt_config_signer_seeds,
+    )?;
+
+    let mut create_user_collection_auction_buy_receipt_data = ctx
+        .accounts
+        .user_collection_auction_buy_receipt_config
+        .try_borrow_mut_data()?;
+
+    let create_user_collection_auction_buy_receipt_discriminator =
+        UserCollectionAuctionBuyReceiptAccount::discriminator();
+    create_user_collection_auction_buy_receipt_data[..8]
+        .copy_from_slice(&create_user_collection_auction_buy_receipt_discriminator);
+
+    let create_user_collection_auction_buy_receipt = UserCollectionAuctionBuyReceiptAccount {
+        last_block_timestamp: timestamp,
+        buy_amount: params.amount,
+        buy_amount_filled: 0,
+        payment: total_price,
+        round: current_round_index,
+        index: buy_index,
+        collection_mint: ctx.accounts.collection_mint_account.key(),
+        user: ctx.accounts.user.key(),
+        pad_name: params.pad_name.clone(),
+    };
+
+    create_user_collection_auction_buy_receipt
+        .serialize(&mut &mut create_user_collection_auction_buy_receipt_data[8..])?;
 
     // Event
     let event: BuyCollectionAssetEvent = BuyCollectionAssetEvent {

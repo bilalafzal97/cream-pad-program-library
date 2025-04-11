@@ -17,11 +17,11 @@ pub struct UserCollectionAuctionBuyReceiptAccount {
 
     pub index: u64,
 
-    pub pad_name: String,
-
     pub collection_mint: Pubkey,
 
     pub user: Pubkey,
+
+    pub pad_name: String,
 }
 
 impl UserCollectionAuctionBuyReceiptAccount {
@@ -39,10 +39,10 @@ impl UserCollectionAuctionBuyReceiptAccount {
 
             + 8 // index
 
-            + 50 // pad_name
-
             + 32 // collection_mint
 
             + 32 // user
+
+            + 50 // pad_name
     }
 }

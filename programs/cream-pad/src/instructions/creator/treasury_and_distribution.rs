@@ -28,9 +28,6 @@ pub struct TreasuryAndDistributeInputParams {
 #[derive(Accounts)]
 #[instruction(params: TreasuryAndDistributeInputParams)]
 pub struct TreasuryAndDistributeInputAccounts<'info> {
-    #[account(mut)]
-    pub fee_and_rent_payer: Signer<'info>,
-
     pub supply_distributor: Signer<'info>,
 
     #[account(

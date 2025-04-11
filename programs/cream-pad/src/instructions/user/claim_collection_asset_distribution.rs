@@ -75,8 +75,6 @@ pub struct ClaimCollectionAssetDistributionInputAccounts<'info> {
 
     pub collection_mint_account: Box<InterfaceAccount<'info, Mint>>,
 
-    pub payment_token_mint_account: Box<InterfaceAccount<'info, Mint>>,
-
     pub system_program: Program<'info, System>,
 
     pub rent: Sysvar<'info, Rent>,
@@ -86,7 +84,7 @@ pub struct ClaimCollectionAssetDistributionInputAccounts<'info> {
     pub instructions_sysvar: AccountInfo<'info>,
 }
 
-pub fn handle_collection_asset_distribution<'info>(
+pub fn handle_claim_collection_asset_distribution<'info>(
     ctx: Context<'_, '_, 'info, 'info, ClaimCollectionAssetDistributionInputAccounts<'info>>,
     params: &ClaimCollectionAssetDistributionParams,
 ) -> Result<()> {

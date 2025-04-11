@@ -5,9 +5,8 @@ use crate::states::{
     USER_COLLECTION_AUCTION_ACCOUNT_PREFIX, USER_COLLECTION_AUCTION_BUY_RECEIPT_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    check_back_authority, check_is_auction_is_locked, check_is_exceeding_end_index,
-    check_is_program_working, check_is_receipt_full, check_program_id, check_signer_exist,
-    try_get_remaining_account_info,
+    check_back_authority, check_is_exceeding_end_index, check_is_program_working,
+    check_is_receipt_full, check_program_id, check_signer_exist, try_get_remaining_account_info,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
@@ -173,8 +172,6 @@ pub fn handle_fill_bought_collection_asset<'info>(
 
     let asset_master_edition_account_info =
         try_get_remaining_account_info(ctx.remaining_accounts, 6)?;
-
-    check_is_auction_is_locked(collection_auction_config.status.clone())?;
 
     check_is_exceeding_end_index(
         collection_auction_config

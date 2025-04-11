@@ -264,7 +264,8 @@ export async function assertCollectionAuctionAccount(
     assetName: string,
     assetSymbol: string,
     assetUrl: string,
-    assetUrlSuffix: string
+    assetUrlSuffix: string,
+    haveCollectionUpdateAuthority: boolean
 ) {
     const data = await program.account.collectionAuctionAccount.fetch(pdaAddress);
 
@@ -326,6 +327,8 @@ export async function assertCollectionAuctionAccount(
     assert(data.assetSymbol === assetSymbol, "Auction -> assetSymbol");
     assert(data.assetUrl === assetUrl, "Auction -> assetUrl");
     assert(data.assetUrlSuffix === assetUrlSuffix, "Auction -> assetUrlSuffix");
+
+    assert(data.haveCollectionUpdateAuthority === haveCollectionUpdateAuthority, "Auction -> haveCollectionUpdateAuthority");
 }
 
 export async function assertCollectionAuctionRoundAccount(
@@ -348,7 +351,7 @@ export async function assertCollectionAuctionRoundAccount(
 ) {
     const data = await program.account.collectionAuctionRoundAccount.fetch(pdaAddress);
 
-    console.log("Auction Round account: >>>>>>>> ", data);
+    console.log("Collection auction Round account: >>>>>>>> ", data);
 
     assert(data.roundStartAt.toNumber() === roundStartAt.toNumber(), "Auction Round -> roundStartAt");
     assert(data.roundEndAt.toNumber() === roundEndAt.toNumber(), "Auction Round -> roundEndAt");
@@ -365,4 +368,84 @@ export async function assertCollectionAuctionRoundAccount(
     assert(data.roundEndedAt.toNumber() === roundEndedAt.toNumber(), "Auction Round -> roundEndedAt");
     assert(data.haveBuyLimit === haveBuyLimit, "Auction Round -> haveBuyLimit");
     assert(data.buyLimit.toNumber() === buyLimit.toNumber(), "Auction Round -> buyLimit");
+}
+
+export async function assertUserCollectionAuctionAccount(
+    program: Program<CreamPad>,
+    pdaAddress: PublicKey,
+    user: PublicKey,
+    totalBuyCount: BN,
+    totalBuyAmount: BN,
+    totalBuyAmountFilled: BN,
+    totalPayment: BN,
+    status: UserAuctionStatusType
+) {
+    const data = await program.account.userCollectionAuctionAccount.fetch(pdaAddress);
+
+    console.log("User collection auction account: >>>>>>>> ", data);
+
+    assert(data.user.toBase58() === user.toBase58(), "User Auction -> user");
+    assert(data.totalBuyCount.toNumber() === totalBuyCount.toNumber(), "User Auction -> totalBuyCount");
+    assert(data.totalBuyAmount.toNumber() === totalBuyAmount.toNumber(), "User Auction -> totalBuyAmount");
+    assert(data.totalBuyAmountFilled.toNumber() === totalBuyAmountFilled.toNumber(), "User Auction -> totalBuyAmountFilled");
+    assert(data.totalPayment.toNumber() === totalPayment.toNumber(), "User Auction -> totalPayment");
+    assert(JSON.stringify(data.status) === JSON.stringify(status), "User Auction -> status");
+}
+
+export async function assertUserCollectionAuctionRoundAccount(
+    program: Program<CreamPad>,
+    pdaAddress: PublicKey,
+    totalBuyCount: BN,
+    totalBuyAmount: BN,
+    totalPayment: BN,
+    round: number
+) {
+    const data = await program.account.userCollectionAuctionRoundAccount.fetch(pdaAddress);
+
+    console.log("User collection auction round account: >>>>>>>> ", data);
+
+    assert(data.totalBuyCount.toNumber() === totalBuyCount.toNumber(), "User Auction Round -> totalBuyCount");
+    assert(data.totalBuyAmount.toNumber() === totalBuyAmount.toNumber(), "User Auction Round -> totalBuyAmount");
+    assert(data.totalPayment.toNumber() === totalPayment.toNumber(), "User Auction Round -> totalPayment");
+    assert(data.round === round, "User Auction Round -> round");
+}
+
+export async function assertUserCollectionAuctionBuyReceiptAccount(
+    program: Program<CreamPad>,
+    pdaAddress: PublicKey,
+    buyAmount: BN,
+    buyAmountFilled: BN,
+    payment: BN,
+    round: number,
+    index: BN,
+    collectionMint: PublicKey,
+    user: PublicKey,
+    padName: string,
+) {
+    const data = await program.account.userCollectionAuctionBuyReceiptAccount.fetch(pdaAddress);
+
+    console.log("User collection auction buy receipt account: >>>>>>>> ", data);
+
+    assert(data.buyAmount.toNumber() === buyAmount.toNumber(), "User Auction Buy Receipt -> buyAmount");
+    assert(data.buyAmountFilled.toNumber() === buyAmountFilled.toNumber(), "User Auction Buy Receipt -> buyAmountFilled");
+    assert(data.payment.toNumber() === payment.toNumber(), "User Auction Buy Receipt -> payment");
+    assert(data.round === round, "User Auction Buy Receipt -> round");
+    assert(data.index.toNumber() === index.toNumber(), "User Auction Buy Receipt -> index");
+    assert(data.collectionMint.toBase58() === collectionMint.toBase58(), "User Auction Buy Receipt -> collectionMint");
+    assert(data.user.toBase58() === user.toBase58(), "User Auction Buy Receipt -> user");
+    assert(data.padName === padName, "User Auction Buy Receipt -> padName");
+}
+
+export async function assertUserCollectionAuctionUnsoldDistributionAccount(
+    program: Program<CreamPad>,
+    pdaAddress: PublicKey,
+    amount: BN,
+    amountFilled: BN
+) {
+    const data = await program.account.userCollectionAuctionUnsoldDistributionAccount.fetch(pdaAddress);
+
+    console.log("User collection auction unsold distribution account: >>>>>>>> ", data);
+
+    assert(data.amount.toNumber() === amount.toNumber(), "User Auction Unsold Distribution -> amount");
+    assert(data.amountFilled.toNumber() === amountFilled.toNumber(), "User Auction Unsold Distribution -> amountFilled");
 }
