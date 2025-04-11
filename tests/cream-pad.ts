@@ -33,18 +33,52 @@ import {
 import {assert} from "chai";
 import {CreamPad} from "../target/types/cream_pad";
 import {
-    BuyEventName, ClaimDistributionEventName,
-    EndRoundEventName, handleBuyEvent, handleClaimDistributionEvent,
+    BuyCollectionAssetEvent,
+    BuyCollectionAssetEventName,
+    BuyEventName,
+    ClaimDistributionEventName,
+    CollectionClaimDistributionEvent, CollectionClaimDistributionEventName,
+    EndCollectionRoundEvent,
+    EndCollectionRoundEventName,
+    EndRoundEventName,
+    FillBoughtCollectionAssetEvent,
+    FillBoughtCollectionAssetEventName,
+    FillClaimedCollectionAssetDistributionEvent, FillClaimedCollectionAssetDistributionEventName,
+    GiveCollectionUpdateAuthorityEvent,
+    GiveCollectionUpdateAuthorityEventName,
+    handleBuyCollectionAssetEvent,
+    handleBuyEvent,
+    handleClaimDistributionEvent, handleCollectionClaimDistributionEvent,
+    handleEndCollectionRoundEvent,
     handleEndRoundEvent,
+    handleFillBoughtCollectionAssetEvent, handleFillClaimedCollectionAssetDistributionEvent,
+    handleGiveCollectionUpdateAuthorityEvent,
+    handleInitializeCollectionPadEvent,
     handleInitializePadEvent,
     handleLockAndDistributionEvent,
+    handleMintTreasuryAssetEvent,
+    handleStartCollectionRoundEvent,
     handleStartRoundEvent,
+    handleTakeCollectionUpdateAuthorityEvent,
+    handleTreasuryAndDistributionEvent,
     handleUnlockUnsoldSupplyEvent,
+    handleUpdateCollectionPadEvent,
     handleUpdatePadEvent,
+    InitializeCollectionPadEvent,
+    InitializeCollectionPadEventName,
     InitializePadEventName,
     LockAndDistributionEventName,
+    MintTreasuryAssetEvent,
+    MintTreasuryAssetEventName,
+    StartCollectionRoundEvent,
+    StartCollectionRoundEventName,
     StartRoundEventName,
+    TakeCollectionUpdateAuthorityEvent,
+    TakeCollectionUpdateAuthorityEventName,
+    TreasuryAndDistributionEventName,
     UnlockUnsoldSupplyEventName,
+    UpdateCollectionPadEvent,
+    UpdateCollectionPadEventName,
     UpdatePadEventName
 } from "./cream-pad-event-types";
 import {
@@ -175,6 +209,20 @@ describe("cream-pad", () => {
     const unlockUnsoldSupplyEventListener = program.addEventListener(UnlockUnsoldSupplyEventName, handleUnlockUnsoldSupplyEvent);
     const buyEventListener = program.addEventListener(BuyEventName, handleBuyEvent);
     const claimDistributionEventListener = program.addEventListener(ClaimDistributionEventName, handleClaimDistributionEvent);
+
+    // collection
+    const initializeCollectionPadEventListener = program.addEventListener(InitializeCollectionPadEventName, handleInitializeCollectionPadEvent);
+    const updateCollectionPadEventListener = program.addEventListener(UpdateCollectionPadEventName, handleUpdateCollectionPadEvent);
+    const endCollectionRoundEventListener = program.addEventListener(EndCollectionRoundEventName, handleEndCollectionRoundEvent);
+    const startCollectionRoundEventListener = program.addEventListener(StartCollectionRoundEventName, handleStartCollectionRoundEvent);
+    const takeCollectionUpdateAuthorityEventListener = program.addEventListener(TakeCollectionUpdateAuthorityEventName, handleTakeCollectionUpdateAuthorityEvent);
+    const giveCollectionUpdateAuthorityEventListener = program.addEventListener(GiveCollectionUpdateAuthorityEventName, handleGiveCollectionUpdateAuthorityEvent);
+    const treasuryAndDistributionEventListener = program.addEventListener(TreasuryAndDistributionEventName, handleTreasuryAndDistributionEvent);
+    const mintTreasuryAssetEventListener = program.addEventListener(MintTreasuryAssetEventName, handleMintTreasuryAssetEvent);
+    const buyCollectionAssetEventListener = program.addEventListener(BuyCollectionAssetEventName, handleBuyCollectionAssetEvent);
+    const fillBoughtCollectionAssetEventListener = program.addEventListener(FillBoughtCollectionAssetEventName, handleFillBoughtCollectionAssetEvent);
+    const collectionClaimDistributionEventListener = program.addEventListener(CollectionClaimDistributionEventName, handleCollectionClaimDistributionEvent);
+    const fillClaimedCollectionAssetDistributionEventListener = program.addEventListener(FillClaimedCollectionAssetDistributionEventName, handleFillClaimedCollectionAssetDistributionEvent);
 
     it("setup signers accounts", async () => {
         console.log("Main Signing Authority Account: ", mainSigningAuthorityPubKey.toBase58());
@@ -3929,6 +3977,20 @@ describe("cream-pad", () => {
         await program.removeEventListener(unlockUnsoldSupplyEventListener);
         await program.removeEventListener(buyEventListener);
         await program.removeEventListener(claimDistributionEventListener);
+
+        // Collection
+        await program.removeEventListener(initializeCollectionPadEventListener);
+        await program.removeEventListener(updateCollectionPadEventListener);
+        await program.removeEventListener(endCollectionRoundEventListener);
+        await program.removeEventListener(startCollectionRoundEventListener);
+        await program.removeEventListener(takeCollectionUpdateAuthorityEventListener);
+        await program.removeEventListener(giveCollectionUpdateAuthorityEventListener);
+        await program.removeEventListener(treasuryAndDistributionEventListener);
+        await program.removeEventListener(mintTreasuryAssetEventListener);
+        await program.removeEventListener(buyCollectionAssetEventListener);
+        await program.removeEventListener(fillBoughtCollectionAssetEventListener);
+        await program.removeEventListener(collectionClaimDistributionEventListener);
+        await program.removeEventListener(fillClaimedCollectionAssetDistributionEventListener);
     });
 });
 

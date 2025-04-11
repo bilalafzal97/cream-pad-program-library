@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use crate::states::AssetCreator;
 
 #[event]
 pub struct InitializeCollectionPadEvent {
@@ -34,8 +33,4 @@ pub struct InitializeCollectionPadEvent {
     pub starting_index: u64,
 
     pub ending_index: u64,
-
-    pub seller_fee_basis_points: u16,
-
-    pub asset_creators: Vec<AssetCreator>,
 }

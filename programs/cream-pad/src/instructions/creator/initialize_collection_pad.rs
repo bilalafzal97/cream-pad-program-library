@@ -247,8 +247,6 @@ pub fn handle_initialize_collection_pad<'info>(
         buy_limit: params.buy_limit,
         starting_index: collection_auction_config.starting_index,
         ending_index: collection_auction_config.ending_index,
-        seller_fee_basis_points: collection_auction_config.seller_fee_basis_points,
-        asset_creators: collection_auction_config.asset_creators.clone(),
     };
 
     emit!(event);
