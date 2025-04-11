@@ -134,12 +134,12 @@ export function getUserAuctionUnsoldDistributionAccountPdaAndBump(programAddress
     )
 }
 
-export function getCollectionAuctionAccountPdaAndBump(programAddress: PublicKey, padName: string, tokenMintAccount: PublicKey): [PublicKey, number] {
+export function getCollectionAuctionAccountPdaAndBump(programAddress: PublicKey, padName: string, collectionMintAccount: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
         [
             Buffer.from(COLLECTION_AUCTION_ACCOUNT_PREFIX),
             Buffer.from(padName),
-            tokenMintAccount.toBuffer()
+            collectionMintAccount.toBuffer()
         ],
         programAddress
     )

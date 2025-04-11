@@ -7,10 +7,8 @@ import {
     SYSVAR_RENT_PUBKEY,
     SystemProgram,
     SYSVAR_INSTRUCTIONS_PUBKEY,
-    Connection,
     Transaction,
-    TransactionMessage,
-    ComputeBudgetProgram, ComputeBudgetInstruction
+    ComputeBudgetProgram,
 } from "@solana/web3.js";
 import {nanoid} from "nanoid";
 import {
@@ -24,27 +22,22 @@ import {
     createInitializeMintInstruction,
     createAssociatedTokenAccountInstruction,
     createMintToCheckedInstruction,
-    getMint, getMinimumBalanceForRentExemptMint, MINT_SIZE
+    getMinimumBalanceForRentExemptMint, MINT_SIZE
 } from '@solana/spl-token';
 import {
-    PROGRAM_ID as MPL_TOKEN_METADATA_PROGRAM_ID, DataV2, Metadata, createCreateMetadataAccountV3Instruction,
+    PROGRAM_ID as MPL_TOKEN_METADATA_PROGRAM_ID, DataV2, createCreateMetadataAccountV3Instruction,
     createCreateMasterEditionV3Instruction, createVerifyCollectionInstruction
 } from "@metaplex-foundation/mpl-token-metadata";
-import {assert} from "chai";
 import {CreamPad} from "../target/types/cream_pad";
 import {
-    BuyCollectionAssetEvent,
     BuyCollectionAssetEventName,
     BuyEventName,
     ClaimDistributionEventName,
-    CollectionClaimDistributionEvent, CollectionClaimDistributionEventName,
-    EndCollectionRoundEvent,
+    CollectionClaimDistributionEventName,
     EndCollectionRoundEventName,
     EndRoundEventName,
-    FillBoughtCollectionAssetEvent,
     FillBoughtCollectionAssetEventName,
-    FillClaimedCollectionAssetDistributionEvent, FillClaimedCollectionAssetDistributionEventName,
-    GiveCollectionUpdateAuthorityEvent,
+    FillClaimedCollectionAssetDistributionEventName,
     GiveCollectionUpdateAuthorityEventName,
     handleBuyCollectionAssetEvent,
     handleBuyEvent,
@@ -64,32 +57,26 @@ import {
     handleUnlockUnsoldSupplyEvent,
     handleUpdateCollectionPadEvent,
     handleUpdatePadEvent,
-    InitializeCollectionPadEvent,
     InitializeCollectionPadEventName,
     InitializePadEventName,
     LockAndDistributionEventName,
-    MintTreasuryAssetEvent,
     MintTreasuryAssetEventName,
-    StartCollectionRoundEvent,
     StartCollectionRoundEventName,
     StartRoundEventName,
-    TakeCollectionUpdateAuthorityEvent,
     TakeCollectionUpdateAuthorityEventName,
     TreasuryAndDistributionEventName,
     UnlockUnsoldSupplyEventName,
-    UpdateCollectionPadEvent,
     UpdateCollectionPadEventName,
     UpdatePadEventName
 } from "./cream-pad-event-types";
 import {
-    AuctionRoundStatus, AuctionRoundStatusType,
-    AuctionStatus, AuctionStatusType,
-    DecayModel, DecayModelType,
+    AuctionRoundStatus,
+    AuctionStatus,
+    DecayModel,
     ProgramStatus,
-    ProgramStatusType,
-    UserAuctionStatus, UserAuctionStatusType
+    UserAuctionStatus,
 } from "./cream-pad-enum";
-import {lamportsToTokens, tokensToLamports} from "./cream-pad-math";
+import {tokensToLamports} from "./cream-pad-math";
 import {
     getAuctionAccountPdaAndBump,
     getAuctionRoundAccountPdaAndBump,
@@ -1674,6 +1661,120 @@ describe("cream-pad", () => {
         await assertTokenBalance(connection, creatorSellingTokenAccount, 862.5, "Creator Selling Token Account", "Creator Selling Token Account");
     });
 
+    it("claim distribution", async () => {
+
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId);
+        console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
+
+        const [auctionConfigPda, auctionConfigBump] = getAuctionAccountPdaAndBump(program.programId, padName, sellingTokenMintAccount);
+        console.log("auctionConfigPda: ", auctionConfigPda.toBase58());
+
+        const auctionConfigSellingTokenAccount = await getAssociatedTokenAddress(sellingTokenMintAccount, auctionConfigPda, true, sellingTokenProgramAccount);
+        console.log("auctionConfigSellingTokenAccount: ", auctionConfigSellingTokenAccount.toBase58());
+
+        const userSellingTokenAccount = await getAssociatedTokenAddress(sellingTokenMintAccount, userAKeypair.publicKey, true, sellingTokenProgramAccount);
+        console.log("userSellingTokenAccount: ", userSellingTokenAccount.toBase58());
+
+
+        const [userAuctionConfigPda, userAuctionConfigBump] = getUserAuctionAccountPdaAndBump(programId, auctionConfigPda, userAKeypair.publicKey);
+        console.log("userAuctionConfigPda: ", userAuctionConfigPda.toBase58());
+
+        const [userAuctionUnsoldDistributionConfigPda] = getUserAuctionUnsoldDistributionAccountPdaAndBump(programId, userAuctionConfigPda);
+        console.log("userAuctionUnsoldDistributionConfigPda: ", userAuctionUnsoldDistributionConfigPda.toBase58());
+
+        const tx = await program.methods.claimDistribution({
+            padName: padName,
+            auctionConfigBump: auctionConfigBump,
+            userAuctionConfigBump: userAuctionConfigBump,
+        })
+            .accounts({
+                feeAndRentPayer: feeAndRentPayerKeypair.publicKey,
+                user: userAKeypair.publicKey,
+                auctionConfig: auctionConfigPda,
+                userAuctionConfig: userAuctionConfigPda,
+                userAuctionUnsoldDistributionConfig: userAuctionUnsoldDistributionConfigPda,
+                auctionConfigTokenAccount: auctionConfigSellingTokenAccount,
+                userTokenAccount: userSellingTokenAccount,
+                tokenMintAccount: sellingTokenMintAccount,
+                tokenProgram: sellingTokenProgramAccount,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+                rent: SYSVAR_RENT_PUBKEY,
+                instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY
+            })
+            .remainingAccounts([
+                // index 0: Cream pad config
+                {
+                    pubkey: creamPadConfigPda,
+                    isWritable: false,
+                    isSigner: false
+                },
+                // index 0: back authority
+                {
+                    pubkey: backAuthorityKeypair.publicKey,
+                    isWritable: false,
+                    isSigner: true
+                }
+            ])
+            .signers([feeAndRentPayerKeypair, backAuthorityKeypair, userAKeypair])
+            .rpc({
+                skipPreflight: true
+            });
+
+        console.log("Your transaction signature", tx);
+
+        await delay(delayTimeCount);
+
+        const auctionConfigData = await program.account.auctionAccount.fetch(auctionConfigPda);
+
+        await assertAuctionAccount(
+            program,
+            auctionConfigPda,
+            creatorKeypair.publicKey,
+            sellingTokenMintAccount,
+            paymentTokenMintAccount,
+            paymentReceiverKeypair.publicKey,
+            AuctionStatus.UnsoldUnlocked,
+            new BN(tokensToLamports(4, 9).toString()),
+            new BN(tokensToLamports(1.2, 9).toString()),
+            2,
+            new BN(tokensToLamports(2, 9).toString()),
+            new BN(tokensToLamports(2, 9).toString()),
+            new BN(2),
+            new BN(tokensToLamports(1.2, 9).toString()),
+            2,
+            [
+                new BN(0),
+                new BN(0)
+            ],
+            DecayModel.Linear,
+            new BN(tokensToLamports(200, 9).toString()),
+            new BN(tokensToLamports(75, 9).toString()),
+            new BN(1),
+            new BN(1),
+            new BN(tokensToLamports(62.5, 9).toString()),
+            auctionConfigData.unsoldSupplyLockedAt,
+            auctionConfigData.unsoldSupplyCanUnlockAt,
+            auctionConfigData.unsoldSupplyUnlockedAt,
+            new BN(tokensToLamports(62.5, 9).toString()),
+            new BN(tokensToLamports(62.5, 9).toString()),
+            new BN(1),
+            new BN(tokensToLamports(300, 9).toString()),
+            new BN(tokensToLamports(75, 9).toString())
+        );
+
+        await assertUserAuctionUnsoldDistributionAccount(
+            program,
+            userAuctionUnsoldDistributionConfigPda,
+            new BN(tokensToLamports(62.5, 9).toString()),
+        );
+
+        await assertTokenBalance(connection, auctionConfigSellingTokenAccount, 0, "Auction Config Selling token account", "Auction Config Selling token account");
+
+        await assertTokenBalance(connection, userSellingTokenAccount, 137.5, "User Selling token account", "User Selling token account");
+
+    });
+
     // Collection
     it("Initialize Collection Pad Config", async () => {
         const roundIndex = "1";
@@ -2092,7 +2193,7 @@ describe("cream-pad", () => {
         const roundIndex = "1";
         const userBuyIndex = "1";
 
-        const [creamPadConfigPda, creamPadConfigBump] = getCreamPadAccountPdaAndBump(program.programId);
+        const [creamPadConfigPda] = getCreamPadAccountPdaAndBump(program.programId);
         console.log("creamPadConfigPda: ", creamPadConfigPda.toBase58());
 
         const [collectionAuctionConfigPda, collectionAuctionConfigBump] = getCollectionAuctionAccountPdaAndBump(program.programId, collectionPadName, collectionMintAccount);
@@ -2314,7 +2415,6 @@ describe("cream-pad", () => {
     });
 
     it("Fill Buy Asset user a - buy 1 - asset 1", async () => {
-        const roundIndex = "1";
         const userBuyIndex = "1";
 
         const assetUuid = nanoid();
@@ -2506,7 +2606,6 @@ describe("cream-pad", () => {
     });
 
     it("Fill Buy Asset user a - buy 1 - asset 2", async () => {
-        const roundIndex = "1";
         const userBuyIndex = "1";
 
         const assetUuid = nanoid();
@@ -2698,7 +2797,6 @@ describe("cream-pad", () => {
     });
 
     it("Fill Buy Asset user a - buy 1 - asset 3", async () => {
-        const roundIndex = "1";
         const userBuyIndex = "1";
 
         const assetUuid = nanoid();
