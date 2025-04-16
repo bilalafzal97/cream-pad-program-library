@@ -317,6 +317,7 @@ pub fn handle_mint_treasury_asset<'info>(
         pad_name: params.pad_name.clone(),
         asset_uuid: params.asset_uuid.clone(),
         asset_index: collection_auction_config.current_index,
+        asset_mint_account: ctx.accounts.asset_mint_account.key(),
     };
 
     emit!(event);

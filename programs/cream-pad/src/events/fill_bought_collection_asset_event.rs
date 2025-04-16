@@ -15,4 +15,6 @@ pub struct FillBoughtCollectionAssetEvent {
     pub buy_index: u64,
 
     pub user: Pubkey,
+
+    pub asset_mint_account: Pubkey,
 }

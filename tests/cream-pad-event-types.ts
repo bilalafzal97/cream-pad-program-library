@@ -284,6 +284,8 @@ export interface MintTreasuryAssetEvent {
     assetUuid: string,
 
     assetIndex: BN,
+
+    assetMintAccount: PublicKey,
 }
 
 export const BuyCollectionAssetEventName = "BuyCollectionAssetEvent";
@@ -330,6 +332,8 @@ export interface FillBoughtCollectionAssetEvent {
     buyIndex: BN,
 
     user: PublicKey,
+
+    assetMintAccount: PublicKey,
 }
 
 export const CollectionClaimDistributionEventName = "CollectionClaimDistributionEvent";
@@ -360,6 +364,8 @@ export interface FillClaimedCollectionAssetDistributionEvent {
     assetIndex: BN,
 
     user: PublicKey,
+
+    assetMintAccount: PublicKey,
 }
 
 export const handleInitializePadEvent = (ev: InitializePadEvent) =>

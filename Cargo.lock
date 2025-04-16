@@ -722,7 +722,7 @@ dependencies = [
 
 [[package]]
 name = "cream-pad"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "anchor-lang",
  "anchor-spl",

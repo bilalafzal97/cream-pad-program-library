@@ -373,6 +373,7 @@ pub fn handle_fill_bought_collection_asset<'info>(
         asset_index: collection_auction_config.current_index,
         buy_index: params.buy_index.clone().parse().unwrap(),
         user: ctx.accounts.user.key(),
+        asset_mint_account: ctx.accounts.asset_mint_account.key(),
     };
 
     emit!(event);

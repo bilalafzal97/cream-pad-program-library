@@ -11,4 +11,6 @@ pub struct MintTreasuryAssetEvent {
     pub asset_uuid: String,
 
     pub asset_index: u64,
+
+    pub asset_mint_account: Pubkey,
 }

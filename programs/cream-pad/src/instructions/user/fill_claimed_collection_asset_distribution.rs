@@ -369,6 +369,7 @@ pub fn handle_fill_claimed_collection_asset_distribution<'info>(
             asset_uuid: params.asset_uuid.clone(),
             asset_index: collection_auction_config.current_index,
             user: ctx.accounts.user.key(),
+            asset_mint_account: ctx.accounts.asset_mint_account.key(),
         };
 
     emit!(event);
