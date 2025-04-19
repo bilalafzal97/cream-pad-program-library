@@ -171,13 +171,15 @@ pub fn handle_buy_collection_asset<'info>(
     let user_collection_auction_round_config: &Box<Account<UserCollectionAuctionRoundAccount>> =
         &ctx.accounts.user_collection_auction_round_config;
 
-    check_round_buy_limit(
-        user_collection_auction_round_config
-            .total_buy_amount
-            .checked_add(params.amount)
-            .unwrap(),
-        collection_auction_round_config.buy_limit,
-    )?;
+    if collection_auction_round_config.have_buy_limit {
+        check_round_buy_limit(
+            user_collection_auction_round_config
+                .total_buy_amount
+                .checked_add(params.amount)
+                .unwrap(),
+            collection_auction_round_config.buy_limit,
+        )?;
+    };
 
     let buy_index: u64 = params.buy_index.clone().parse().unwrap();
 

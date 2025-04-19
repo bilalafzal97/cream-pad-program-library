@@ -8,19 +8,17 @@ use crate::utils::{
     adjust_amount, calculate_boost, calculate_total_price, check_back_authority, check_buy_index,
     check_current_round, check_is_auction_ended_or_sold_out, check_is_auction_round_ended,
     check_is_auction_round_time_run_out, check_is_program_working, check_payment_fee_receiver,
-    check_payment_mint_account, check_payment_receiver, check_remaining_supply, check_signer_exist,
-    check_token_account_authority, try_get_remaining_account_info, BASE_POINT,
+    check_payment_mint_account, check_payment_receiver, check_remaining_supply,
+    check_round_buy_limit, check_signer_exist, check_token_account_authority,
+    try_get_remaining_account_info, BASE_POINT,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
-use anchor_spl::associated_token::{
-    create as associated_token_create, Create as AssociatedTokenCreate,
-};
 use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
 
 use crate::events::BuyEvent;
 use anchor_lang::solana_program::sysvar::instructions::{
-    get_instruction_relative, load_current_index_checked,
+    get_instruction_relative, load_current_index_checked, load_instruction_at_checked,
 };
 
 #[repr(C)]
@@ -153,13 +151,27 @@ pub fn handle_buy<'info>(
         let instruction_index =
             load_current_index_checked(&ctx.accounts.instructions_sysvar.to_account_info())?
                 as usize;
+
         let instruction: Instruction =
-            get_instruction_relative(instruction_index as i64, &ctx.accounts.instructions_sysvar)?;
+            load_instruction_at_checked(instruction_index, &ctx.accounts.instructions_sysvar)?;
 
         check_signer_exist(instruction, back_authority_account_info.key())?;
     };
 
     let user_auction_config: &Box<Account<UserAuctionAccount>> = &ctx.accounts.user_auction_config;
+
+    let user_auction_round_config: &Box<Account<UserAuctionRoundAccount>> =
+        &ctx.accounts.user_auction_round_config;
+
+    if auction_round_config.have_buy_limit {
+        check_round_buy_limit(
+            user_auction_round_config
+                .total_buy_amount
+                .checked_add(params.amount)
+                .unwrap(),
+            auction_round_config.buy_limit,
+        )?;
+    };
 
     let buy_index: u64 = params.buy_index.clone().parse().unwrap();
 
@@ -171,24 +183,22 @@ pub fn handle_buy<'info>(
     let token_program_account_info = try_get_remaining_account_info(ctx.remaining_accounts, 2)?;
     let payment_token_program_account_info =
         try_get_remaining_account_info(ctx.remaining_accounts, 3)?;
-    let associated_token_program_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 4)?;
 
     let user_payment_token_account_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 5)?;
+        try_get_remaining_account_info(ctx.remaining_accounts, 4)?;
     let user_token_account_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 6)?;
+        try_get_remaining_account_info(ctx.remaining_accounts, 5)?;
 
     let auction_config_token_account_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 7)?;
+        try_get_remaining_account_info(ctx.remaining_accounts, 6)?;
 
-    let payment_receiver_account_info = try_get_remaining_account_info(ctx.remaining_accounts, 8)?;
+    let payment_receiver_account_info = try_get_remaining_account_info(ctx.remaining_accounts, 7)?;
     let payment_receiver_token_account_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 9)?;
+        try_get_remaining_account_info(ctx.remaining_accounts, 8)?;
 
-    let fee_receiver_account_info = try_get_remaining_account_info(ctx.remaining_accounts, 10)?;
+    let fee_receiver_account_info = try_get_remaining_account_info(ctx.remaining_accounts, 9)?;
     let fee_receiver_payment_token_account_account_info =
-        try_get_remaining_account_info(ctx.remaining_accounts, 11)?;
+        try_get_remaining_account_info(ctx.remaining_accounts, 10)?;
 
     let current_round_index: u16 = params.current_round_index.clone().parse().unwrap();
 
@@ -245,25 +255,6 @@ pub fn handle_buy<'info>(
             .checked_div(BASE_POINT as u64)
             .unwrap();
 
-        if fee_receiver_payment_token_account_account_info.data_is_empty() {
-            // Create fee receiver token account
-            let create_fee_receiver_ata_cpi_accounts = AssociatedTokenCreate {
-                payer: ctx.accounts.fee_and_rent_payer.to_account_info(),
-                associated_token: fee_receiver_payment_token_account_account_info.clone(),
-                authority: fee_receiver_account_info.to_account_info(),
-                mint: ctx.accounts.payment_token_mint_account.to_account_info(),
-                system_program: ctx.accounts.system_program.to_account_info(),
-                token_program: payment_token_program_account_info.clone(),
-            };
-
-            let create_fee_receiver_ata_cpi_ctx = CpiContext::new(
-                associated_token_program_account_info.clone(),
-                create_fee_receiver_ata_cpi_accounts,
-            );
-
-            associated_token_create(create_fee_receiver_ata_cpi_ctx)?;
-        };
-
         // Check fee receiver token account authority
         let fee_receiver_token_account_unpacked: TokenAccount =
             TokenAccount::try_deserialize_unchecked(
@@ -299,24 +290,6 @@ pub fn handle_buy<'info>(
     };
 
     // Handle payment transfer
-    if payment_receiver_token_account_account_info.data_is_empty() {
-        // Create payment receiver token account
-        let create_payment_receiver_ata_cpi_accounts = AssociatedTokenCreate {
-            payer: ctx.accounts.fee_and_rent_payer.to_account_info(),
-            associated_token: payment_receiver_token_account_account_info.clone(),
-            authority: payment_receiver_account_info.to_account_info(),
-            mint: ctx.accounts.payment_token_mint_account.to_account_info(),
-            system_program: ctx.accounts.system_program.to_account_info(),
-            token_program: payment_token_program_account_info.clone(),
-        };
-
-        let create_payment_receiver_ata_cpi_ctx = CpiContext::new(
-            associated_token_program_account_info.clone(),
-            create_payment_receiver_ata_cpi_accounts,
-        );
-
-        associated_token_create(create_payment_receiver_ata_cpi_ctx)?;
-    };
 
     // Check payment receiver token account authority
     let payment_receiver_token_account_unpacked: TokenAccount =
@@ -352,24 +325,6 @@ pub fn handle_buy<'info>(
     )?;
 
     // handle token transfer to user
-    if user_token_account_account_info.data_is_empty() {
-        // Create user token account
-        let create_user_ata_cpi_accounts = AssociatedTokenCreate {
-            payer: ctx.accounts.fee_and_rent_payer.to_account_info(),
-            associated_token: user_token_account_account_info.clone(),
-            authority: ctx.accounts.user.to_account_info(),
-            mint: ctx.accounts.token_mint_account.to_account_info(),
-            system_program: ctx.accounts.system_program.to_account_info(),
-            token_program: token_program_account_info.clone(),
-        };
-
-        let create_user_ata_cpi_ctx = CpiContext::new(
-            associated_token_program_account_info.clone(),
-            create_user_ata_cpi_accounts,
-        );
-
-        associated_token_create(create_user_ata_cpi_ctx)?;
-    };
 
     // Check user token account authority
     let user_token_account_unpacked: TokenAccount = TokenAccount::try_deserialize_unchecked(
@@ -418,7 +373,7 @@ pub fn handle_buy<'info>(
         ctx.accounts.payment_token_mint_account.decimals,
         9,
     );
-
+    
     // Set Values
     let auction_config: &mut Box<Account<AuctionAccount>> = &mut ctx.accounts.auction_config;
     auction_config.last_block_timestamp = timestamp;
@@ -436,7 +391,7 @@ pub fn handle_buy<'info>(
         .total_fee
         .checked_add(adjusted_back_fee_price)
         .unwrap();
-
+    
     let auction_round_config: &mut Box<Account<AuctionRoundAccount>> =
         &mut ctx.accounts.auction_round_config;
     auction_round_config.last_block_timestamp = timestamp;
@@ -456,7 +411,7 @@ pub fn handle_buy<'info>(
         .total_fee
         .checked_add(adjusted_back_fee_price)
         .unwrap();
-
+    
     // check is over sold
     if auction_config.total_supply_sold >= auction_config.total_supply {
         let boost: u64 = calculate_boost(
@@ -469,14 +424,14 @@ pub fn handle_buy<'info>(
             auction_config.alpha,
             auction_config.time_shift_max,
         );
-
+    
         auction_config.boost_history.push(boost);
         auction_config.status = AuctionStatus::SoldOut;
-
+    
         auction_round_config.status = AuctionRoundStatus::Ended;
         auction_round_config.boost = boost;
     };
-
+    
     let user_auction_config: &mut Box<Account<UserAuctionAccount>> =
         &mut ctx.accounts.user_auction_config;
     if user_auction_config.last_block_timestamp == 0 {
@@ -484,7 +439,7 @@ pub fn handle_buy<'info>(
         user_auction_config.status = UserAuctionStatus::None;
         auction_config.total_user_count = auction_config.total_user_count.checked_add(1).unwrap();
     };
-
+    
     user_auction_config.last_block_timestamp = timestamp;
     user_auction_config.total_buy_count =
         user_auction_config.total_buy_count.checked_add(1).unwrap();
@@ -496,7 +451,7 @@ pub fn handle_buy<'info>(
         .total_payment
         .checked_add(adjusted_back_total_price)
         .unwrap();
-
+    
     let user_auction_round_config: &mut Box<Account<UserAuctionRoundAccount>> =
         &mut ctx.accounts.user_auction_round_config;
     if user_auction_round_config.last_block_timestamp == 0 {
@@ -506,7 +461,7 @@ pub fn handle_buy<'info>(
             .checked_add(1)
             .unwrap();
     };
-
+    
     user_auction_round_config.last_block_timestamp = timestamp;
     user_auction_round_config.total_buy_count = user_auction_round_config
         .total_buy_count
@@ -520,7 +475,7 @@ pub fn handle_buy<'info>(
         .total_payment
         .checked_add(adjusted_back_total_price)
         .unwrap();
-
+    
     let user_auction_buy_receipt_config: &mut Box<Account<UserAuctionBuyReceiptAccount>> =
         &mut ctx.accounts.user_auction_buy_receipt_config;
     user_auction_buy_receipt_config.last_block_timestamp = timestamp;
@@ -528,7 +483,7 @@ pub fn handle_buy<'info>(
     user_auction_buy_receipt_config.payment = adjusted_back_total_price;
     user_auction_buy_receipt_config.round = current_round_index;
     user_auction_buy_receipt_config.index = buy_index;
-
+    
     // Event
     let event: BuyEvent = BuyEvent {
         timestamp,
@@ -543,7 +498,7 @@ pub fn handle_buy<'info>(
         user_buy_index: params.buy_index.clone(),
         is_ended_and_sold_out: auction_config.status.eq(&AuctionStatus::SoldOut),
     };
-
+    
     emit!(event);
 
     Ok(())

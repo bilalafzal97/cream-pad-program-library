@@ -9,6 +9,7 @@ import {
     SYSVAR_INSTRUCTIONS_PUBKEY,
     Transaction,
     ComputeBudgetProgram,
+    TransactionInstruction
 } from "@solana/web3.js";
 import {nanoid} from "nanoid";
 import {
@@ -920,6 +921,47 @@ describe("cream-pad", () => {
         const [userAuctionBuyReceiptConfigPda] = getUserAuctionBuyReceiptAccountPdaAndBump(programId, userAuctionConfigPda, userBuyIndex);
         console.log("userAuctionBuyReceiptConfigPda: ", userAuctionBuyReceiptConfigPda.toBase58());
 
+        const ixs: TransactionInstruction[] = [];
+
+        if ((await connection.getAccountInfo(feeReceiverPaymentTokenAccount)) == null) {
+            const createFeeReceiverPaymentTokenAccountIx: TransactionInstruction = createAssociatedTokenAccountInstruction(
+                feeAndRentPayerKeypair.publicKey,
+                feeReceiverPaymentTokenAccount,
+                feeReceiverKeypair.publicKey,
+                paymentTokenMintAccount,
+                paymentTokenProgramAccount,
+                ASSOCIATED_TOKEN_PROGRAM_ID
+            );
+
+            ixs.push(createFeeReceiverPaymentTokenAccountIx)
+        }
+
+        if ((await connection.getAccountInfo(paymentReceiverPaymentTokenAccount)) == null) {
+            const createPaymentReceiverPaymentTokenAccountIx: TransactionInstruction = createAssociatedTokenAccountInstruction(
+                feeAndRentPayerKeypair.publicKey,
+                paymentReceiverPaymentTokenAccount,
+                paymentReceiverKeypair.publicKey,
+                paymentTokenMintAccount,
+                paymentTokenProgramAccount,
+                ASSOCIATED_TOKEN_PROGRAM_ID
+            );
+
+            ixs.push(createPaymentReceiverPaymentTokenAccountIx)
+        }
+
+        if ((await connection.getAccountInfo(userSellingTokenAccount)) == null) {
+            const createUserSellingTokenAccountIx: TransactionInstruction = createAssociatedTokenAccountInstruction(
+                feeAndRentPayerKeypair.publicKey,
+                userSellingTokenAccount,
+                userAKeypair.publicKey,
+                sellingTokenMintAccount,
+                sellingTokenProgramAccount,
+                ASSOCIATED_TOKEN_PROGRAM_ID
+            );
+
+            ixs.push(createUserSellingTokenAccountIx)
+        }
+
         const tx = await program.methods.buy({
             padName: padName,
             currentRoundIndex: roundIndex,
@@ -967,49 +1009,43 @@ describe("cream-pad", () => {
                     isWritable: false,
                     isSigner: false
                 },
-                // index 4: associated token program
-                {
-                    pubkey: ASSOCIATED_TOKEN_PROGRAM_ID,
-                    isWritable: false,
-                    isSigner: false
-                },
-                // index 5: user payment token program
+                // index 4: user payment token program
                 {
                     pubkey: userPaymentTokenAccount,
                     isWritable: true,
                     isSigner: false
                 },
-                // index 6: user token program
+                // index 5: user token program
                 {
                     pubkey: userSellingTokenAccount,
                     isWritable: true,
                     isSigner: false
                 },
-                // index 7: auction config token program
+                // index 6: auction config token program
                 {
                     pubkey: auctionConfigSellingTokenAccount,
                     isWritable: true,
                     isSigner: false
                 },
-                // index 8: payment receiver
+                // index 7: payment receiver
                 {
                     pubkey: paymentReceiverKeypair.publicKey,
                     isWritable: false,
                     isSigner: false
                 },
-                // index 9: payment receiver token account
+                // index 8: payment receiver token account
                 {
                     pubkey: paymentReceiverPaymentTokenAccount,
                     isWritable: true,
                     isSigner: false
                 },
-                // index 10: fee receiver
+                // index 9: fee receiver
                 {
                     pubkey: feeReceiverKeypair.publicKey,
                     isWritable: false,
                     isSigner: false
                 },
-                // index 11: fee receiver token account
+                // index 10: fee receiver token account
                 {
                     pubkey: feeReceiverPaymentTokenAccount,
                     isWritable: true,
@@ -1017,9 +1053,10 @@ describe("cream-pad", () => {
                 },
             ])
 
+            .preInstructions([...ixs])
             .signers([feeAndRentPayerKeypair, backAuthorityKeypair, userAKeypair])
             .rpc({
-                skipPreflight: true
+                skipPreflight: false
             });
 
         console.log("Your transaction signature", tx);
