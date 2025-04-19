@@ -1,30 +1,24 @@
 use crate::events::MintTreasuryAssetEvent;
-use crate::states::{
-    CollectionAuctionAccount, CreamPadAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX,
-};
+use crate::states::{CollectionAuctionAccount, CreamPadAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX};
 use crate::utils::{
-    check_back_authority, check_is_auction_is_locked,
-    check_is_exceeding_end_index, check_is_program_working, check_is_treasury_full,
-    check_program_id,
-    check_signer_exist,
+    check_back_authority, check_is_auction_is_locked, check_is_exceeding_end_index,
+    check_is_program_working, check_is_treasury_full, check_program_id, check_signer_exist,
     check_treasury, try_get_remaining_account_info,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::solana_program::sysvar::instructions::{
-    get_instruction_relative, load_current_index_checked,
+    load_current_index_checked, load_instruction_at_checked,
 };
 use anchor_spl::associated_token::{
     create as associated_token_create, AssociatedToken, Create as AssociatedTokenCreate,
 };
 use anchor_spl::metadata::{
     create_master_edition_v3, create_metadata_accounts_v3,
-    mpl_token_metadata::types::{Collection, Creator, DataV2}, verify_collection, CreateMasterEditionV3,
-    CreateMetadataAccountsV3, Metadata, VerifyCollection,
+    mpl_token_metadata::types::{Collection, Creator, DataV2},
+    verify_collection, CreateMasterEditionV3, CreateMetadataAccountsV3, Metadata, VerifyCollection,
 };
-use anchor_spl::token_interface::{
-    mint_to, Mint, MintTo, TokenInterface,
-};
+use anchor_spl::token_interface::{mint_to, Mint, MintTo, TokenInterface};
 
 #[repr(C)]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -121,7 +115,7 @@ pub fn handle_mint_treasury_asset<'info>(
             load_current_index_checked(&ctx.accounts.instructions_sysvar.to_account_info())?
                 as usize;
         let instruction: Instruction =
-            get_instruction_relative(instruction_index as i64, &ctx.accounts.instructions_sysvar)?;
+            load_instruction_at_checked(instruction_index, &ctx.accounts.instructions_sysvar)?;
 
         check_signer_exist(instruction, back_authority_account_info.key())?;
     };
@@ -305,10 +299,17 @@ pub fn handle_mint_treasury_asset<'info>(
 
     // Set Values
 
-    let collection_auction_config: &mut Box<Account<CollectionAuctionAccount>> = &mut ctx.accounts.collection_auction_config;
+    let collection_auction_config: &mut Box<Account<CollectionAuctionAccount>> =
+        &mut ctx.accounts.collection_auction_config;
     collection_auction_config.last_block_timestamp = timestamp;
-    collection_auction_config.current_index = collection_auction_config.current_index.checked_add(1).unwrap();
-    collection_auction_config.total_unsold_supply_to_treasury_filled = collection_auction_config.total_unsold_supply_to_treasury_filled.checked_add(1).unwrap();
+    collection_auction_config.current_index = collection_auction_config
+        .current_index
+        .checked_add(1)
+        .unwrap();
+    collection_auction_config.total_unsold_supply_to_treasury_filled = collection_auction_config
+        .total_unsold_supply_to_treasury_filled
+        .checked_add(1)
+        .unwrap();
 
     // Event
     let event: MintTreasuryAssetEvent = MintTreasuryAssetEvent {

@@ -1,20 +1,20 @@
 use crate::states::{
-    CollectionAuctionAccount, CollectionAuctionRoundAccount, AuctionRoundStatus, AuctionStatus, CreamPadAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX, COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX,
+    AuctionRoundStatus, AuctionStatus, CollectionAuctionAccount, CollectionAuctionRoundAccount,
+    CreamPadAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX, COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    calculate_boost, check_back_authority, check_current_round,
-    check_is_auction_ended_or_sold_out, check_is_auction_round_ended,
-    check_is_auction_round_still_have_time, check_is_program_working, check_program_id,
-    check_round_ender, check_signer_exist, try_get_remaining_account_info,
+    calculate_boost, check_back_authority, check_current_round, check_is_auction_ended_or_sold_out,
+    check_is_auction_round_ended, check_is_auction_round_still_have_time, check_is_program_working,
+    check_program_id, check_round_ender, check_signer_exist, try_get_remaining_account_info,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_spl::token_interface::Mint;
 
-use anchor_lang::solana_program::sysvar::instructions::{
-    get_instruction_relative, load_current_index_checked,
-};
 use crate::events::EndCollectionRoundEvent;
+use anchor_lang::solana_program::sysvar::instructions::{
+    load_current_index_checked, load_instruction_at_checked,
+};
 
 #[repr(C)]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -74,7 +74,8 @@ pub fn handle_end_collection_round<'info>(
     let cream_pad_config: Account<CreamPadAccount> =
         Account::try_from(cream_pad_config_account_info)?;
 
-    let collection_auction_config: &Box<Account<CollectionAuctionAccount>> = &ctx.accounts.collection_auction_config;
+    let collection_auction_config: &Box<Account<CollectionAuctionAccount>> =
+        &ctx.accounts.collection_auction_config;
     let collection_auction_round_config: &Box<Account<CollectionAuctionRoundAccount>> =
         &ctx.accounts.collection_auction_round_config;
 
@@ -100,7 +101,7 @@ pub fn handle_end_collection_round<'info>(
             load_current_index_checked(&ctx.accounts.instructions_sysvar.to_account_info())?
                 as usize;
         let instruction: Instruction =
-            get_instruction_relative(instruction_index as i64, &ctx.accounts.instructions_sysvar)?;
+            load_instruction_at_checked(instruction_index, &ctx.accounts.instructions_sysvar)?;
 
         check_signer_exist(instruction, back_authority_account_info.key())?;
     };
@@ -119,7 +120,10 @@ pub fn handle_end_collection_round<'info>(
 
     check_is_auction_ended_or_sold_out(collection_auction_config.status.clone())?;
 
-    check_is_auction_round_still_have_time(collection_auction_round_config.round_end_at, timestamp)?;
+    check_is_auction_round_still_have_time(
+        collection_auction_round_config.round_end_at,
+        timestamp,
+    )?;
 
     let boost: u64 = calculate_boost(
         collection_auction_round_config.total_supply_sold,
@@ -133,7 +137,8 @@ pub fn handle_end_collection_round<'info>(
     );
 
     // Set Values
-    let collection_auction_config: &mut Box<Account<CollectionAuctionAccount>> = &mut ctx.accounts.collection_auction_config;
+    let collection_auction_config: &mut Box<Account<CollectionAuctionAccount>> =
+        &mut ctx.accounts.collection_auction_config;
     collection_auction_config.last_block_timestamp = timestamp;
 
     if current_round_index == collection_auction_config.tmax {

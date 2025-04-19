@@ -18,7 +18,7 @@ use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, Transfer
 
 use crate::events::BuyEvent;
 use anchor_lang::solana_program::sysvar::instructions::{
-    get_instruction_relative, load_current_index_checked, load_instruction_at_checked,
+    load_current_index_checked, load_instruction_at_checked,
 };
 
 #[repr(C)]

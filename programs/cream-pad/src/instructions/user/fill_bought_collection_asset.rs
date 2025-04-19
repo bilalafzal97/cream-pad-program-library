@@ -11,7 +11,7 @@ use crate::utils::{
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::solana_program::sysvar::instructions::{
-    get_instruction_relative, load_current_index_checked,
+    load_current_index_checked, load_instruction_at_checked,
 };
 use anchor_spl::associated_token::{
     create as associated_token_create, AssociatedToken, Create as AssociatedTokenCreate,
@@ -154,7 +154,7 @@ pub fn handle_fill_bought_collection_asset<'info>(
             load_current_index_checked(&ctx.accounts.instructions_sysvar.to_account_info())?
                 as usize;
         let instruction: Instruction =
-            get_instruction_relative(instruction_index as i64, &ctx.accounts.instructions_sysvar)?;
+            load_instruction_at_checked(instruction_index, &ctx.accounts.instructions_sysvar)?;
 
         check_signer_exist(instruction, back_authority_account_info.key())?;
     };

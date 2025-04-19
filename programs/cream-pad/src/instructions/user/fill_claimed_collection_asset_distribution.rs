@@ -7,13 +7,13 @@ use crate::states::{
 };
 use crate::utils::{
     check_back_authority, check_is_auction_is_locked, check_is_distribution_full,
-    check_is_exceeding_end_index, check_is_program_working,
-    check_program_id, check_signer_exist, try_get_remaining_account_info,
+    check_is_exceeding_end_index, check_is_program_working, check_program_id, check_signer_exist,
+    try_get_remaining_account_info,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::solana_program::sysvar::instructions::{
-    get_instruction_relative, load_current_index_checked,
+    load_current_index_checked, load_instruction_at_checked,
 };
 use anchor_spl::associated_token::{
     create as associated_token_create, AssociatedToken, Create as AssociatedTokenCreate,
@@ -154,7 +154,7 @@ pub fn handle_fill_claimed_collection_asset_distribution<'info>(
             load_current_index_checked(&ctx.accounts.instructions_sysvar.to_account_info())?
                 as usize;
         let instruction: Instruction =
-            get_instruction_relative(instruction_index as i64, &ctx.accounts.instructions_sysvar)?;
+            load_instruction_at_checked(instruction_index, &ctx.accounts.instructions_sysvar)?;
 
         check_signer_exist(instruction, back_authority_account_info.key())?;
     };

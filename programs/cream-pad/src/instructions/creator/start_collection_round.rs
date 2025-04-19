@@ -1,6 +1,6 @@
 use crate::states::{
-    CollectionAuctionAccount, CollectionAuctionRoundAccount, CreamPadAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX,
-    COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX
+    CollectionAuctionAccount, CollectionAuctionRoundAccount, CreamPadAccount,
+    COLLECTION_AUCTION_ACCOUNT_PREFIX, COLLECTION_AUCTION_ROUND_ACCOUNT_PREFIX,
 };
 use crate::utils::{
     calculate_price, check_back_authority, check_is_auction_ended_or_sold_out,
@@ -14,7 +14,7 @@ use anchor_spl::token_interface::Mint;
 
 use crate::events::StartCollectionRoundEvent;
 use anchor_lang::solana_program::sysvar::instructions::{
-    get_instruction_relative, load_current_index_checked,
+    load_current_index_checked, load_instruction_at_checked,
 };
 
 #[repr(C)]
@@ -65,7 +65,8 @@ pub struct StartNextCollectionRoundInputAccounts<'info> {
         ],
         bump = params.previous_collection_auction_round_config_bump,
     )]
-    pub previous_collection_auction_round_config: Box<Account<'info, CollectionAuctionRoundAccount>>,
+    pub previous_collection_auction_round_config:
+        Box<Account<'info, CollectionAuctionRoundAccount>>,
 
     #[account(
         init,
@@ -102,7 +103,8 @@ pub fn handle_start_next_collection_round<'info>(
     let cream_pad_config: Account<CreamPadAccount> =
         Account::try_from(cream_pad_config_account_info)?;
 
-    let collection_auction_config: &Box<Account<CollectionAuctionAccount>> = &ctx.accounts.collection_auction_config;
+    let collection_auction_config: &Box<Account<CollectionAuctionAccount>> =
+        &ctx.accounts.collection_auction_config;
     let previous_collection_auction_round_config: &Box<Account<CollectionAuctionRoundAccount>> =
         &ctx.accounts.previous_collection_auction_round_config;
 
@@ -127,7 +129,7 @@ pub fn handle_start_next_collection_round<'info>(
             load_current_index_checked(&ctx.accounts.instructions_sysvar.to_account_info())?
                 as usize;
         let instruction: Instruction =
-            get_instruction_relative(instruction_index as i64, &ctx.accounts.instructions_sysvar)?;
+            load_instruction_at_checked(instruction_index, &ctx.accounts.instructions_sysvar)?;
 
         check_signer_exist(instruction, back_authority_account_info.key())?;
     };
@@ -142,10 +144,16 @@ pub fn handle_start_next_collection_round<'info>(
 
     let next_round_index: u16 = params.next_round_index.clone().parse().unwrap();
 
-    check_previous_round(collection_auction_config.current_round, previous_round_index)?;
+    check_previous_round(
+        collection_auction_config.current_round,
+        previous_round_index,
+    )?;
 
     check_next_round(
-        collection_auction_config.current_round.checked_add(1).unwrap(),
+        collection_auction_config
+            .current_round
+            .checked_add(1)
+            .unwrap(),
         next_round_index,
     )?;
 
@@ -168,9 +176,13 @@ pub fn handle_start_next_collection_round<'info>(
     );
 
     // Set Values
-    let collection_auction_config: &mut Box<Account<CollectionAuctionAccount>> = &mut ctx.accounts.collection_auction_config;
+    let collection_auction_config: &mut Box<Account<CollectionAuctionAccount>> =
+        &mut ctx.accounts.collection_auction_config;
     collection_auction_config.last_block_timestamp = timestamp;
-    collection_auction_config.current_round = collection_auction_config.current_round.checked_add(1).unwrap();
+    collection_auction_config.current_round = collection_auction_config
+        .current_round
+        .checked_add(1)
+        .unwrap();
     collection_auction_config.current_price = current_price;
 
     let next_collection_auction_round_config: &mut Box<Account<CollectionAuctionRoundAccount>> =

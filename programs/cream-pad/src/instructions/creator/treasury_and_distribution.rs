@@ -2,9 +2,8 @@ use crate::states::{
     AuctionStatus, CollectionAuctionAccount, CreamPadAccount, COLLECTION_AUCTION_ACCOUNT_PREFIX,
 };
 use crate::utils::{
-    check_back_authority, check_is_auction_ended, check_is_program_working,
-    check_program_id, check_signer_exist, check_supply_locker, try_get_remaining_account_info,
-    BASE_POINT,
+    check_back_authority, check_is_auction_ended, check_is_program_working, check_program_id,
+    check_signer_exist, check_supply_locker, try_get_remaining_account_info, BASE_POINT,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
@@ -13,7 +12,7 @@ use anchor_spl::token_interface::Mint;
 use crate::events::TreasuryAndDistributionEvent;
 
 use anchor_lang::solana_program::sysvar::instructions::{
-    get_instruction_relative, load_current_index_checked,
+    load_current_index_checked, load_instruction_at_checked,
 };
 
 #[repr(C)]
@@ -83,7 +82,7 @@ pub fn handle_treasury_and_distribute<'info>(
             load_current_index_checked(&ctx.accounts.instructions_sysvar.to_account_info())?
                 as usize;
         let instruction: Instruction =
-            get_instruction_relative(instruction_index as i64, &ctx.accounts.instructions_sysvar)?;
+            load_instruction_at_checked(instruction_index, &ctx.accounts.instructions_sysvar)?;
 
         check_signer_exist(instruction, back_authority_account_info.key())?;
     };
