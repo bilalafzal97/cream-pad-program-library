@@ -225,7 +225,7 @@ pub fn handle_initialize_collection_pad<'info>(
     collection_auction_round_config.round_end_at = timestamp.checked_add(params.round_duration).unwrap();
     collection_auction_round_config.round = 1;
     collection_auction_round_config.price = params.p0;
-    collection_auction_round_config.boost = 0;
+    collection_auction_round_config.boost = 0.0;
     collection_auction_round_config.have_buy_limit = params.have_buy_limit;
     collection_auction_round_config.buy_limit = params.buy_limit;
 

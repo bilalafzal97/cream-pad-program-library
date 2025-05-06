@@ -121,7 +121,7 @@ pub fn handle_end_round<'info>(
 
     check_is_auction_round_still_have_time(auction_round_config.round_end_at, timestamp)?;
 
-    let boost: u64 = calculate_boost(
+    let boost: f64 = calculate_boost(
         auction_round_config.total_supply_sold,
         auction_config
             .total_supply

@@ -125,7 +125,7 @@ pub fn handle_end_collection_round<'info>(
         timestamp,
     )?;
 
-    let boost: u64 = calculate_boost(
+    let boost: f64 = calculate_boost(
         collection_auction_round_config.total_supply_sold,
         collection_auction_config
             .total_supply

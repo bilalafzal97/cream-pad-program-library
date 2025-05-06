@@ -386,12 +386,15 @@ pub fn calculate_boost(
     omega: u64,
     alpha: u64,
     time_shift_max: u64,
-) -> u64 {
+) -> f64 {
     if actual_sales >= expected_sales {
         let ratio = actual_sales as f64 / expected_sales as f64; //   Use f64 for precision
-        return (alpha as f64 * omega as f64 * ratio).min(time_shift_max as f64) as u64;
+
+        let boost = (alpha as f64 * omega as f64 * ratio).min(time_shift_max as f64);
+
+        return boost;
     }
-    0 // No boost if sales are below target
+    -1.0 // No boost if sales are below target
 }
 
 pub fn calculate_price(
@@ -399,14 +402,14 @@ pub fn calculate_price(
     ptmax: u64,            // Minimum price
     t_max: u64,            // Total rounds (time)
     current_round: usize,  // Current round index
-    boost_history: &[u64], // Boost applied per round
+    boost_history: &[f64], // Boost applied per round
     decay_model: DecayModelType,
     time_shift_max: u64, // Maximum shift in time-based decay
 ) -> u64 {
     let mut total_boost: f64 = 0.0; // Use f64 for precision
 
     for &boost in boost_history.iter().take(current_round) {
-        total_boost += 1.0 - boost.min(time_shift_max) as f64; // Fix boost impact
+        total_boost += -boost.min(time_shift_max as f64); // Fix boost impact
     }
 
     if decay_model == DecayModelType::Linear {

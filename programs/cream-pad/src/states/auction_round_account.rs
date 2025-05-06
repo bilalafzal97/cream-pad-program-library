@@ -18,7 +18,7 @@ pub struct AuctionRoundAccount {
 
     pub total_user_count: u64,
 
-    pub boost: u64,
+    pub boost: f64,
 
     pub price: u64,
 

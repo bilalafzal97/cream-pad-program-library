@@ -450,7 +450,7 @@ pub fn handle_buy_collection_asset<'info>(
 
     // check is over sold
     if collection_auction_config.total_supply_sold >= collection_auction_config.total_supply {
-        let boost: u64 = calculate_boost(
+        let boost: f64 = calculate_boost(
             collection_auction_round_config.total_supply_sold,
             collection_auction_config
                 .total_supply

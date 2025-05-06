@@ -58,7 +58,7 @@ export interface EndRoundEvent {
 
     roundIndex: string,
 
-    boost: BN,
+    boost: number,
 }
 
 export const StartRoundEventName = "StartRoundEvent";
@@ -211,7 +211,7 @@ export interface EndCollectionRoundEvent {
 
     roundIndex: string,
 
-    boost: BN,
+    boost: number,
 }
 
 export const StartCollectionRoundEventName = "StartCollectionRoundEvent";

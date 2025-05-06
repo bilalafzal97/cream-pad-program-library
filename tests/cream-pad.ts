@@ -794,7 +794,7 @@ describe("cream-pad", () => {
             new BN(0),
             new BN(0),
             new BN(0),
-            new BN(0),
+            0,
             new BN(tokensToLamports(4, 9).toString()),
             AuctionRoundStatus.Started,
             new BN(0),
@@ -1107,7 +1107,7 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(75, 9).toString()),
             new BN(1),
             new BN(1),
-            new BN(0),
+            0,
             new BN(tokensToLamports(4, 9).toString()),
             AuctionRoundStatus.Started,
             new BN(tokensToLamports(300, 9).toString()),
@@ -1226,7 +1226,7 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(4, 9).toString()),
             1,
             [
-                new BN(0)
+                -1
             ],
             DecayModel.Linear,
             new BN(tokensToLamports(200, 9).toString()),
@@ -1255,7 +1255,7 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(75, 9).toString()),
             new BN(1),
             new BN(1),
-            new BN(0),
+            -1,
             new BN(tokensToLamports(4, 9).toString()),
             AuctionRoundStatus.Ended,
             new BN(tokensToLamports(300, 9).toString()),
@@ -1344,7 +1344,7 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(1.2, 9).toString()),
             2,
             [
-                new BN(0),
+                -1,
             ],
             DecayModel.Linear,
             new BN(tokensToLamports(200, 9).toString()),
@@ -1373,7 +1373,7 @@ describe("cream-pad", () => {
             new BN(0),
             new BN(0),
             new BN(0),
-            new BN(0),
+            0,
             new BN(tokensToLamports(1.2, 9).toString()),
             AuctionRoundStatus.Started,
             new BN(0),
@@ -1453,8 +1453,8 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(1.2, 9).toString()),
             2,
             [
-                new BN(0),
-                new BN(0)
+                -1,
+                -1
             ],
             DecayModel.Linear,
             new BN(tokensToLamports(200, 9).toString()),
@@ -1483,7 +1483,7 @@ describe("cream-pad", () => {
             new BN(0),
             new BN(0),
             new BN(0),
-            new BN(0),
+            -1,
             new BN(tokensToLamports(1.2, 9).toString()),
             AuctionRoundStatus.Ended,
             new BN(0),
@@ -1572,8 +1572,8 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(1.2, 9).toString()),
             2,
             [
-                new BN(0),
-                new BN(0)
+                -1,
+                -1
             ],
             DecayModel.Linear,
             new BN(tokensToLamports(200, 9).toString()),
@@ -1673,8 +1673,8 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(1.2, 9).toString()),
             2,
             [
-                new BN(0),
-                new BN(0)
+                -1,
+                -1
             ],
             DecayModel.Linear,
             new BN(tokensToLamports(200, 9).toString()),
@@ -1781,8 +1781,8 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(1.2, 9).toString()),
             2,
             [
-                new BN(0),
-                new BN(0)
+                -1,
+                -1
             ],
             DecayModel.Linear,
             new BN(tokensToLamports(200, 9).toString()),
@@ -1809,7 +1809,6 @@ describe("cream-pad", () => {
         await assertTokenBalance(connection, auctionConfigSellingTokenAccount, 0, "Auction Config Selling token account", "Auction Config Selling token account");
 
         await assertTokenBalance(connection, userSellingTokenAccount, 137.5, "User Selling token account", "User Selling token account");
-
     });
 
     // Collection
@@ -1947,7 +1946,7 @@ describe("cream-pad", () => {
             new BN(0),
             new BN(0),
             new BN(0),
-            new BN(0),
+            0,
             new BN(tokensToLamports(4, 9).toString()),
             AuctionRoundStatus.Started,
             new BN(0),
@@ -2402,7 +2401,7 @@ describe("cream-pad", () => {
             new BN(3),
             new BN(1),
             new BN(1),
-            new BN(0),
+            0,
             new BN(tokensToLamports(4, 9).toString()),
             AuctionRoundStatus.Started,
             new BN(tokensToLamports(12, 9).toString()),
@@ -3089,7 +3088,7 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(4, 9).toString()),
             1,
             [
-                new BN(2)
+                2
             ],
             DecayModel.Linear,
             500,
@@ -3131,7 +3130,7 @@ describe("cream-pad", () => {
             new BN(3),
             new BN(1),
             new BN(1),
-            new BN(2),
+            2,
             new BN(tokensToLamports(4, 9).toString()),
             AuctionRoundStatus.Ended,
             new BN(tokensToLamports(12, 9).toString()),
@@ -3217,10 +3216,10 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(2, 9).toString()),
             new BN(tokensToLamports(2, 9).toString()),
             new BN(2),
-            new BN(tokensToLamports(6.8, 9).toString()),
+            new BN(tokensToLamports(9.6, 9).toString()),
             2,
             [
-                new BN(2),
+                2,
             ],
             DecayModel.Linear,
             500,
@@ -3262,8 +3261,8 @@ describe("cream-pad", () => {
             new BN(0),
             new BN(0),
             new BN(0),
-            new BN(0),
-            new BN(tokensToLamports(6.8, 9).toString()),
+            0,
+            new BN(tokensToLamports(9.6, 9).toString()),
             AuctionRoundStatus.Started,
             new BN(0),
             new BN(0),
@@ -3338,11 +3337,11 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(2, 9).toString()),
             new BN(tokensToLamports(2, 9).toString()),
             new BN(2),
-            new BN(tokensToLamports(6.8, 9).toString()),
+            new BN(tokensToLamports(9.6, 9).toString()),
             2,
             [
-                new BN(2),
-                new BN(0)
+                2,
+                -1
             ],
             DecayModel.Linear,
             500,
@@ -3384,8 +3383,8 @@ describe("cream-pad", () => {
             new BN(0),
             new BN(0),
             new BN(0),
-            new BN(0),
-            new BN(tokensToLamports(6.8, 9).toString()),
+            -1,
+            new BN(tokensToLamports(9.6, 9).toString()),
             AuctionRoundStatus.Ended,
             new BN(0),
             new BN(0),
@@ -3450,11 +3449,11 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(2, 9).toString()),
             new BN(tokensToLamports(2, 9).toString()),
             new BN(2),
-            new BN(tokensToLamports(6.8, 9).toString()),
+            new BN(tokensToLamports(9.6, 9).toString()),
             2,
             [
-                new BN(2),
-                new BN(0)
+                2,
+                -1
             ],
             DecayModel.Linear,
             500,
@@ -3610,11 +3609,11 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(2, 9).toString()),
             new BN(tokensToLamports(2, 9).toString()),
             new BN(2),
-            new BN(tokensToLamports(6.8, 9).toString()),
+            new BN(tokensToLamports(9.6, 9).toString()),
             2,
             [
-                new BN(2),
-                new BN(0)
+                2,
+                -1
             ],
             DecayModel.Linear,
             500,
@@ -3772,11 +3771,11 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(2, 9).toString()),
             new BN(tokensToLamports(2, 9).toString()),
             new BN(2),
-            new BN(tokensToLamports(6.8, 9).toString()),
+            new BN(tokensToLamports(9.6, 9).toString()),
             2,
             [
-                new BN(2),
-                new BN(0)
+                2,
+                -1
             ],
             DecayModel.Linear,
             500,
@@ -3882,11 +3881,11 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(2, 9).toString()),
             new BN(tokensToLamports(2, 9).toString()),
             new BN(2),
-            new BN(tokensToLamports(6.8, 9).toString()),
+            new BN(tokensToLamports(9.6, 9).toString()),
             2,
             [
-                new BN(2),
-                new BN(0)
+                2,
+                -1
             ],
             DecayModel.Linear,
             500,
@@ -4055,11 +4054,11 @@ describe("cream-pad", () => {
             new BN(tokensToLamports(2, 9).toString()),
             new BN(tokensToLamports(2, 9).toString()),
             new BN(2),
-            new BN(tokensToLamports(6.8, 9).toString()),
+            new BN(tokensToLamports(9.6, 9).toString()),
             2,
             [
-                new BN(2),
-                new BN(0)
+                2,
+                -1
             ],
             DecayModel.Linear,
             500,

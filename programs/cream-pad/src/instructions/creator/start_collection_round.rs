@@ -193,7 +193,7 @@ pub fn handle_start_next_collection_round<'info>(
         timestamp.checked_add(params.next_round_duration).unwrap();
     next_collection_auction_round_config.round = collection_auction_config.current_round;
     next_collection_auction_round_config.price = collection_auction_config.current_price;
-    next_collection_auction_round_config.boost = 0;
+    next_collection_auction_round_config.boost = 0.0;
     next_collection_auction_round_config.have_buy_limit = params.next_have_buy_limit;
     next_collection_auction_round_config.buy_limit = params.next_buy_limit;
 

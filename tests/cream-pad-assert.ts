@@ -10,6 +10,7 @@ import {
     ProgramStatusType,
     UserAuctionStatusType
 } from "./cream-pad-enum";
+import {lamportsToTokens} from "./cream-pad-math";
 
 interface LocalCreator {
     share: number,
@@ -62,7 +63,7 @@ export async function assertAuctionAccount(
     timeShiftMax: BN,
     currentPrice: BN,
     currentRound: number,
-    boostHistory: BN[],
+    boostHistory: number[],
     decayModel: DecayModelType,
     totalSupply: BN,
     totalSupplySold: BN,
@@ -97,7 +98,7 @@ export async function assertAuctionAccount(
     assert(data.currentRound === currentRound, "Auction -> currentRound");
 
     for (let i = 0; i < data.boostHistory.length; i++) {
-        assert(data.boostHistory[i].toNumber() === boostHistory[i].toNumber(), "Auction -> boostHistory");
+        assert(data.boostHistory[i] === boostHistory[i], "Auction -> boostHistory");
     }
 
     assert(JSON.stringify(data.decayModel) === JSON.stringify(decayModel), "Auction -> decayModel");
@@ -125,7 +126,7 @@ export async function assertAuctionRoundAccount(
     totalSupplySold: BN,
     totalUserBuyCount: BN,
     totalUserCount: BN,
-    boost: BN,
+    boost: number,
     price: BN,
     status: AuctionRoundStatusType,
     totalPayment: BN,
@@ -144,7 +145,7 @@ export async function assertAuctionRoundAccount(
     assert(data.totalSupplySold.toNumber() === totalSupplySold.toNumber(), "Auction Round -> totalSupplySold");
     assert(data.totalUserBuyCount.toNumber() === totalUserBuyCount.toNumber(), "Auction Round -> totalUserBuyCount");
     assert(data.totalUserCount.toNumber() === totalUserCount.toNumber(), "Auction Round -> totalUserCount");
-    assert(data.boost.toNumber() === boost.toNumber(), "Auction Round -> boost");
+    assert(data.boost === boost, "Auction Round -> boost");
     assert(data.price.toNumber() === price.toNumber(), "Auction Round -> price");
     assert(JSON.stringify(data.status) === JSON.stringify(status), "Auction Round -> status");
     assert(data.totalPayment.toNumber() === totalPayment.toNumber(), "Auction Round -> totalPayment");
@@ -240,7 +241,7 @@ export async function assertCollectionAuctionAccount(
     timeShiftMax: BN,
     currentPrice: BN,
     currentRound: number,
-    boostHistory: BN[],
+    boostHistory: number[],
     decayModel: DecayModelType,
     sellerFeeBasisPoints: number,
     assetCreators: LocalCreator[],
@@ -288,7 +289,7 @@ export async function assertCollectionAuctionAccount(
     assert(data.boostHistory.length === boostHistory.length, "Auction -> boostHistory length");
 
     for (let i = 0; i < data.boostHistory.length; i++) {
-        assert(data.boostHistory[i].toNumber() === boostHistory[i].toNumber(), "Auction -> boostHistory");
+        assert(data.boostHistory[i] === boostHistory[i], "Auction -> boostHistory");
     }
 
     assert(JSON.stringify(data.decayModel) === JSON.stringify(decayModel), "Auction -> decayModel");
@@ -339,7 +340,7 @@ export async function assertCollectionAuctionRoundAccount(
     totalSupplySold: BN,
     totalUserBuyCount: BN,
     totalUserCount: BN,
-    boost: BN,
+    boost: number,
     price: BN,
     status: AuctionRoundStatusType,
     totalPayment: BN,
@@ -358,7 +359,7 @@ export async function assertCollectionAuctionRoundAccount(
     assert(data.totalSupplySold.toNumber() === totalSupplySold.toNumber(), "Auction Round -> totalSupplySold");
     assert(data.totalUserBuyCount.toNumber() === totalUserBuyCount.toNumber(), "Auction Round -> totalUserBuyCount");
     assert(data.totalUserCount.toNumber() === totalUserCount.toNumber(), "Auction Round -> totalUserCount");
-    assert(data.boost.toNumber() === boost.toNumber(), "Auction Round -> boost");
+    assert(data.boost === boost, "Auction Round -> boost");
     assert(data.price.toNumber() === price.toNumber(), "Auction Round -> price");
     assert(JSON.stringify(data.status) === JSON.stringify(status), "Auction Round -> status");
     assert(data.totalPayment.toNumber() === totalPayment.toNumber(), "Auction Round -> totalPayment");

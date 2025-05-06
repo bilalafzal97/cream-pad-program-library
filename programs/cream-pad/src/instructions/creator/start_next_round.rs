@@ -156,7 +156,7 @@ pub fn handle_start_next_round<'info>(
     if params.next_have_buy_limit {
         check_value_is_zero(params.next_buy_limit as usize)?;
     };
-
+    
     let current_price = calculate_price(
         auction_config.p0,
         auction_config.ptmax,
@@ -181,7 +181,7 @@ pub fn handle_start_next_round<'info>(
         timestamp.checked_add(params.next_round_duration).unwrap();
     next_auction_round_config.round = auction_config.current_round;
     next_auction_round_config.price = auction_config.current_price;
-    next_auction_round_config.boost = 0;
+    next_auction_round_config.boost = 0.0;
     next_auction_round_config.have_buy_limit = params.next_have_buy_limit;
     next_auction_round_config.buy_limit = params.next_buy_limit;
 

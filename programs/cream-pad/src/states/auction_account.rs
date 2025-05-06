@@ -35,7 +35,7 @@ pub struct AuctionAccount {
 
     pub current_round: u16,
 
-    pub boost_history: Vec<u64>,
+    pub boost_history: Vec<f64>,
 
     pub decay_model: DecayModelType,
 

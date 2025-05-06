@@ -10,5 +10,5 @@ pub struct EndRoundEvent {
 
     pub round_index: String,
 
-    pub boost: u64,
+    pub boost: f64,
 }

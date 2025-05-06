@@ -414,7 +414,7 @@ pub fn handle_buy<'info>(
     
     // check is over sold
     if auction_config.total_supply_sold >= auction_config.total_supply {
-        let boost: u64 = calculate_boost(
+        let boost: f64 = calculate_boost(
             auction_round_config.total_supply_sold,
             auction_config
                 .total_supply

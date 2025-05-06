@@ -196,7 +196,7 @@ pub fn handle_initialize_pad(
     auction_round_config.round_end_at = timestamp.checked_add(params.round_duration).unwrap();
     auction_round_config.round = 1;
     auction_round_config.price = params.p0;
-    auction_round_config.boost = 0;
+    auction_round_config.boost = 0.0;
     auction_round_config.have_buy_limit = params.have_buy_limit;
     auction_round_config.buy_limit = params.buy_limit;
 
