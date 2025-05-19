@@ -8,7 +8,7 @@ Cream Pad is an innovative token launch platform utilizing **Dutch Dual-Track Au
 - **Dynamic Pricing Mechanism:** Prices adjust based on demand, ensuring fairness and avoiding extreme price swings.
 - **Decay Models:** Supports **Linear** and **Exponential** decay models for gradual price adjustments.
 - **Boost Mechanism:** Encourages higher participation by dynamically shifting pricing based on actual vs. expected sales.
-- **Sonic Integration:** Efficient, low-cost transactions leveraging Sonic’s high-speed blockchain.
+- **Sonic Integration:** Efficient, low-cost transactions leveraging Sonic's high-speed blockchain.
 
 ## Pricing Mechanism
 ### **Price Adjustment Logic**
@@ -20,11 +20,8 @@ Cream Pad is an innovative token launch platform utilizing **Dutch Dual-Track Au
 - **Exponential Decay:** Price follows a logarithmic decline, mimicking natural demand curves.
 
 ### **Boost Calculation**
-The price boost mechanism dynamically adjusts the auction timeline based on the ratio of actual sales to expected sales:
+The price boost mechanism dynamically adjusts the auction timeline based on the ratio of actual sales to expected sales
 
-```
-boost = min(alpha * omega * (actual_sales / expected_sales), time_shift_max)
-```
 - **alpha, omega:** Influence the magnitude of the boost.
 - **time_shift_max:** Ensures controlled price adjustments.
 
@@ -35,7 +32,7 @@ boost = min(alpha * omega * (actual_sales / expected_sales), time_shift_max)
 4. **Final Settlement:** Tokens are allocated based on the final auction price.
 
 ## Installation & Usage
-To build and interact with Cream Pad on Sonicf:
+To build and interact with Cream Pad on Sonic:
 
 ```sh
 # Install dependencies
@@ -46,5 +43,3 @@ anchor build
 
 # Test the program
 anchor test
-```
-
